@@ -36,6 +36,8 @@
             : $1
         (assignable OP_ASSIGN expression)
             : (make-assign $2 $1 $3)
+        (assignable OP_ASSIGN_SC expression)
+            : (make-assign/sc $2 $1 $3)
         (OP_L_NOT expression)
             : (make-unary-operator $1 $2 'prefix)
         (expression OP_L_AND expression)

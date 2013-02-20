@@ -143,6 +143,27 @@
       'target     target
       'expression expression))
 
+  (define assign-expand
+    '(("+="  "+")
+      ("-="  "-")
+      ("*="  "*")
+      ("/="  "/")
+      ("~~=" "~~")
+      ("//=" "//")
+      ("||=" "||")
+      ("&&=" "&&")))
+
+  (define (make-assign/sc op target expression)
+    (make <ast-assign>
+      'location   (token-location op)
+      'target     target
+      'expression (make <ast-binary-operator>
+                    'location (token-location op)
+                    'operator (cadr (assoc (token-value op)
+                                          assign-expand))
+                    'left     target
+                    'right    expression)))
+
   (define (make-document statements)
     (make <ast-document>
       'statements statements)))

@@ -229,6 +229,48 @@
         (ast/unop op (ast/number 23))
         (ast/unop op (ast/number 17))))))
 
+(define (g/ast/operators/assign/sc)
+  (apply t/group
+         "shortcut assignments"
+         (apply
+           append
+           (map (lambda (pair)
+                  (let ((sc (car pair))
+                        (op (cadr pair)))
+                    (list
+                      (cb/ast
+                        (text "single '" sc "' assignment")
+                        (text "$foo " sc " 23")
+                        (ast/assign
+                          (ast/lexvar "$foo")
+                          (ast/binop
+                            op
+                            (ast/lexvar "$foo")
+                            (ast/number 23))))
+                      (cb/ast
+                        (text "multiple '" sc "' assignments")
+                        (text "$foo " sc " $bar " sc " 23")
+                        (ast/assign
+                          (ast/lexvar "$foo")
+                          (ast/binop
+                            op
+                            (ast/lexvar "$foo")
+                            (ast/assign
+                              (ast/lexvar "$bar")
+                              (ast/binop
+                                op
+                                (ast/lexvar "$bar")
+                                (ast/number 23)))))))))
+                '(("+="  "+")
+                  ("-="  "-")
+                  ("*="  "*")
+                  ("/="  "/")
+                  ("~~=" "~~")
+                  ("||=" "||")
+                  ("//=" "//")
+                  ("&&=" "&&"))))))
+                  
+
 (define (g/ast/operators/low-or)
   (op-group/binary/left "low or" "or"))
 
@@ -264,7 +306,8 @@
     g/ast/operators/low-err
     g/ast/operators/low-and
     g/ast/operators/low-not
-    g/ast/operators/assign))
+    g/ast/operators/assign
+    g/ast/operators/assign/sc))
 
 (define (g/ast)
   (t/group

@@ -4,7 +4,7 @@
   (import scheme)
   (import srfi-1 srfi-13)
   (import chicken)
-  (require-extension srfi-1 srfi-13 lalr-driver irregex)
+  (require-extension srfi-1 srfi-13 srfi-69 lalr-driver irregex)
  
   (import ast)
 
@@ -15,7 +15,7 @@
     '(: (+ (or (/ "az") "_"))
         (* (or (/ "az") (/ "09") "_"))))
   (define opword
-    '(+ ("+-*/=<>~")))
+    '(+ (or "+" "-" "*" "/" "=" "<" ">" "~" "|" "&")))
   (define lexvar
     `(: "$" ,bareword))
 
@@ -34,7 +34,7 @@
       (SEMICOLON    ($ (+ ";")))))
 
   (define op/assign
-    (list "+=" "-=" "*=" "/=" "~=" "//=" "||=" "&&="))
+    (list "+=" "-=" "*=" "/=" "~~=" "//=" "||=" "&&="))
 
   (define (clear-token-type type value)
     (define (value-is test)
@@ -79,12 +79,13 @@
             `(,name ,lnum ,cnum)))))
     (define (next-token patterns)
       (if (null? patterns)
-        #f
+        (error "Unable to parse")
+;        (error (string-concatenate (list "Unable to parse >>>" body)))
         (let* ((token   (car patterns))
                (rest    (cdr patterns))
                (type    (car token))
                (pattern `(: bos ,(cadr token))))
-;          (say "type: " type)
+;          (say "test: " type)
 ;          (say "pattern: " pattern)
           (let ((match (irregex-search pattern body)))
             (if match
