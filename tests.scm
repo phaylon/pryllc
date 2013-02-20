@@ -389,6 +389,8 @@
 
 (define (g/ast/operators/low-not)
   (op-group/unary/prefix "low not" "not"))
+(define (g/ast/operators/high-not)
+  (op-group/unary/prefix "high not" "!"))
 
 (define (g/ast/operators/assign)
   (t/group
@@ -419,6 +421,7 @@
     g/ast/operators/high-or
     g/ast/operators/high-err
     g/ast/operators/high-and
+    g/ast/operators/high-not
     g/ast/operators/equality
     g/ast/operators/compare/string
     g/ast/operators/compare/number

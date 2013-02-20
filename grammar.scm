@@ -14,7 +14,8 @@
    (right: OP_TERN_THEN OP_TERN_ELSE)
    (left:  OP_H_OR OP_H_ERR)
    (left:  OP_H_AND)
-   (left:  OP_EQUAL OP_COMPARE))
+   (left:  OP_EQUAL OP_COMPARE)
+   (right: OP_H_NOT))
 
   (document
         (statements)
@@ -53,6 +54,8 @@
             : (make-assign $2 $1 $3)
         (assignable OP_ASSIGN_SC expression)
             : (make-assign/sc $2 $1 $3)
+        (OP_H_NOT expression)
+            : (make-unary-operator $1 $2 'prefix)
         (OP_L_NOT expression)
             : (make-unary-operator $1 $2 'prefix)
         (expression OP_COMPARE expression)
