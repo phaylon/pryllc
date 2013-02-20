@@ -61,6 +61,7 @@
       ((OPWORD)
        (cond ((value-is "=")                    'OP_ASSIGN)
              ((value-is "!")                    'OP_H_NOT)
+             ((value-is "~")                    'OP_CONCAT)
              ((value-is "??")                   'OP_TERN_THEN)
              ((value-is "!!")                   'OP_TERN_ELSE)
              ((value-is "||")                   'OP_H_OR)

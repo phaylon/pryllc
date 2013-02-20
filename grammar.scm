@@ -15,7 +15,8 @@
    (left:  OP_H_OR OP_H_ERR)
    (left:  OP_H_AND)
    (left:  OP_EQUAL OP_COMPARE)
-   (right: OP_H_NOT))
+   (right: OP_H_NOT)
+   (left:  OP_CONCAT))
 
   (document
         (statements)
@@ -58,6 +59,8 @@
             : (make-unary-operator $1 $2 'prefix)
         (OP_L_NOT expression)
             : (make-unary-operator $1 $2 'prefix)
+        (expression OP_CONCAT expression)
+            : (make-binary-operator $2 $1 $3)
         (expression OP_COMPARE expression)
             : (make-binary-operator $2 $1 $3)
         (expression OP_H_AND expression)

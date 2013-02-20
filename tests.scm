@@ -387,6 +387,9 @@
 (define (g/ast/operators/smart)
   (op-group/binary/left "smart match" "~~"))
 
+(define (g/ast/operators/concat)
+  (op-group/binary/left "concatenate" "~"))
+
 (define (g/ast/operators/low-not)
   (op-group/unary/prefix "low not" "not"))
 (define (g/ast/operators/high-not)
@@ -425,7 +428,8 @@
     g/ast/operators/equality
     g/ast/operators/compare/string
     g/ast/operators/compare/number
-    g/ast/operators/smart))
+    g/ast/operators/smart
+    g/ast/operators/concat))
 
 (define (g/ast)
   (t/group
