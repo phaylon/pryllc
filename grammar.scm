@@ -13,7 +13,8 @@
    (right: OP_ASSIGN OP_ASSIGN_SC)
    (right: OP_TERN_THEN OP_TERN_ELSE)
    (left:  OP_H_OR OP_H_ERR)
-   (left:  OP_H_AND))
+   (left:  OP_H_AND)
+   (left: OP_EQUAL))
 
   (document
         (statements)
@@ -35,8 +36,16 @@
         ()
             : '())
 
+  (op-equal-binary
+        (op-equal-binary OP_EQUAL expression)
+            : (combine-equality-operations $2 $1 $3)
+        (expression OP_EQUAL expression)
+            : (make-equality-operations $2 $1 $3))
+
   (expression
         (atom)
+            : $1
+        (op-equal-binary)
             : $1
         (expression OP_TERN_THEN expression OP_TERN_ELSE expression)
             : (make-ternary-operator $2 $1 $3 $5)

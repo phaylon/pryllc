@@ -38,6 +38,12 @@
   (define op/assign
     (list "+=" "-=" "*=" "/=" "~~=" "//=" "||=" "&&="))
 
+  (define op/equality/number
+    (list ">" "<" ">=" "<=" "==" "!="))
+
+  (define op/equality/string
+    (list "gt" "lt" "ge" "le" "eq" "ne"))
+
   (define (clear-token-type type value)
     (define (value-is test)
       (string=? value test))
@@ -45,19 +51,21 @@
       (< 0 (length (filter (lambda (str) (value-is str)) ls))))
     (case type
       ((BAREWORD)
-       (cond ((value-is "and")          'OP_L_AND)
-             ((value-is "or")           'OP_L_OR)
-             ((value-is "not")          'OP_L_NOT)
-             ((value-is "err")          'OP_L_ERR)
+       (cond ((value-is "and")                  'OP_L_AND)
+             ((value-is "or")                   'OP_L_OR)
+             ((value-is "not")                  'OP_L_NOT)
+             ((value-is "err")                  'OP_L_ERR)
+             ((value-is-any op/equality/string) 'OP_EQUAL)
              (else type)))
       ((OPWORD)
-       (cond ((value-is "=")            'OP_ASSIGN)
-             ((value-is "??")           'OP_TERN_THEN)
-             ((value-is "!!")           'OP_TERN_ELSE)
-             ((value-is "||")           'OP_H_OR)
-             ((value-is "//")           'OP_H_ERR)
-             ((value-is "&&")           'OP_H_AND)
-             ((value-is-any op/assign)  'OP_ASSIGN_SC)
+       (cond ((value-is "=")                    'OP_ASSIGN)
+             ((value-is "??")                   'OP_TERN_THEN)
+             ((value-is "!!")                   'OP_TERN_ELSE)
+             ((value-is "||")                   'OP_H_OR)
+             ((value-is "//")                   'OP_H_ERR)
+             ((value-is "&&")                   'OP_H_AND)
+             ((value-is-any op/assign)          'OP_ASSIGN_SC)
+             ((value-is-any op/equality/number) 'OP_EQUAL)
              (else (error (string-concatenate
                             (list "Invalid op " value))))))
       (else type)))

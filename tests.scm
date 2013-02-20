@@ -88,9 +88,9 @@
   (if (op value expected)
     (t/pass title)
     (begin
-      (t/fail title)
       (t/diag "expected: " expected)
       (t/diag "received: " value)
+      (t/fail title)
       #f)))
 
 (define (test-all vs ts)
@@ -180,6 +180,20 @@
     (cb/slot 'consequence conseq)
     (cb/slot 'alternative alter)))
 
+(define (ast/eq . items)
+  (cb/object
+    <ast-equality-operation>
+    (cb/slot
+      'items
+      (apply
+        cb/list
+        "operations"
+        (map (lambda (item)
+               (if (string? item)
+                 (cb/is t/eq item)
+                 item))
+             items)))))
+
 (define ast/$a (ast/lexvar "$a"))
 (define ast/$b (ast/lexvar "$b"))
 (define ast/$c (ast/lexvar "$c"))
@@ -258,6 +272,24 @@
       "nested"
       "$a ?? $b ?? $c !! $d !! $e"
       (ast/ternop ast/$a (ast/ternop ast/$b ast/$c ast/$d) ast/$e))))
+
+(define (g/ast/operators/equality)
+  (apply t/group
+    "equality"
+    (map (lambda (ops)
+           (let ((a (car ops))
+                 (b (cadr ops))
+                 (c (caddr ops)))
+             (cb/ast
+               (text "chained " a " and " b " and " c)
+               (text "$a " a " $b " b " $c " c " $d")
+               (ast/eq ast/$a a ast/$b b ast/$c c ast/$d))))
+         '((">" "<" ">=")
+           ("<=" "==" "!=")
+           ("gt" "lt" "ge")
+           ("le" "eq" "ne")
+           (">" "eq" ">=")))))
+         
 
 (define (op-group/binary/left title op)
   (t/group
@@ -383,7 +415,8 @@
     g/ast/operators/ternary
     g/ast/operators/high-or
     g/ast/operators/high-err
-    g/ast/operators/high-and))
+    g/ast/operators/high-and
+    g/ast/operators/equality))
 
 (define (g/ast)
   (t/group

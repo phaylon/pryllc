@@ -117,6 +117,20 @@
              ,(debug-dump (expression assign))))
 
 ;;
+;; equalities
+;;
+
+  (define-class <ast-equality-operation> ()
+    ((items reader: items)))
+
+  (define-method (debug-dump (eq <ast-equality-operation>))
+    `(equality ,@(map (lambda (item)
+                        (if (string? item)
+                          item
+                          (debug-dump item)))
+                      (items eq))))
+
+;;
 ;; generators
 ;;
 
@@ -186,6 +200,15 @@
                                           assign-expand))
                     'left     target
                     'right    expression)))
+
+  (define (make-equality-operations op left right)
+    (make <ast-equality-operation>
+      'items (list left (token-value op) right)))
+
+  (define (combine-equality-operations op left-eq right)
+    (make <ast-equality-operation>
+      'items (append (slot-value left-eq 'items)
+                     (list (token-value op) right))))
 
   (define (make-document statements)
     (make <ast-document>
