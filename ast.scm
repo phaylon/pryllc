@@ -66,6 +66,22 @@
     `(unop ,(operator op) ,(debug-dump (operand op))))
 
 ;;
+;; ternary operator
+;;
+
+  (define-class <ast-ternary-operator> ()
+    ((location)
+     (condition   reader: condition)
+     (consequence reader: consequence)
+     (alternative reader: alternative)))
+
+  (define-method (debug-dump (tern <ast-ternary-operator>))
+    `(ternop
+      if:   ,(debug-dump (condition tern))
+      then: ,(debug-dump (consequence tern))
+      else: ,(debug-dump (alternative tern))))
+
+;;
 ;; barewords
 ;;
 
@@ -126,6 +142,13 @@
       'operator (token-value op)
       'operand  operand
       'position pos))
+
+  (define (make-ternary-operator op condition conseq alter)
+    (make <ast-ternary-operator>
+      'location     (token-location op)
+      'condition    condition
+      'consequence  conseq
+      'alternative  alter))
 
   (define (make-bareword token)
     (make <ast-bareword>

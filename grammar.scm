@@ -11,7 +11,8 @@
    (left:  OP_L_ERR)
    (left:  OP_L_AND)
    (right: OP_L_NOT)
-   (right: OP_ASSIGN OP_ASSIGN_SC))
+   (right: OP_ASSIGN OP_ASSIGN_SC)
+   (right: OP_TERN_THEN OP_TERN_ELSE))
 
   (document
         (statements)
@@ -36,6 +37,8 @@
   (expression
         (atom)
             : $1
+        (expression OP_TERN_THEN expression OP_TERN_ELSE expression)
+            : (make-ternary-operator $2 $1 $3 $5)
         (assignable OP_ASSIGN expression)
             : (make-assign $2 $1 $3)
         (assignable OP_ASSIGN_SC expression)

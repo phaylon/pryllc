@@ -15,7 +15,7 @@
     '(: (+ (or (/ "az") "_"))
         (* (or (/ "az") (/ "09") "_"))))
   (define opword
-    '(+ (or "+" "-" "*" "/" "=" "<" ">" "~" "|" "&")))
+    '(+ (or "+" "-" "*" "/" "=" "<" ">" "~" "|" "&" "?" "!")))
   (define lexvar
     `(: "$" ,bareword))
 
@@ -52,6 +52,8 @@
              (else type)))
       ((OPWORD)
        (cond ((value-is "=")            'OP_ASSIGN)
+             ((value-is "??")           'OP_TERN_THEN)
+             ((value-is "!!")           'OP_TERN_ELSE)
              ((value-is-any op/assign)  'OP_ASSIGN_SC)
              (else (error (string-concatenate
                             (list "Invalid op " value))))))

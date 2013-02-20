@@ -172,6 +172,19 @@
     <ast-variable-lexical>
     (cb/slot 'value (cb/is t/eq name))))
 
+(define (ast/ternop condit conseq alter)
+  (cb/object
+    <ast-ternary-operator>
+    (cb/slot 'condition condit)
+    (cb/slot 'consequence conseq)
+    (cb/slot 'alternative alter)))
+
+(define ast/$a (ast/lexvar "$a"))
+(define ast/$b (ast/lexvar "$b"))
+(define ast/$c (ast/lexvar "$c"))
+(define ast/$d (ast/lexvar "$d"))
+(define ast/$e (ast/lexvar "$e"))
+
 (define (g/ast/variables)
   (t/group "variables"
     (cb/ast "simple lexical" "$foo" (ast/lexvar "$foo"))
@@ -203,10 +216,7 @@
       "(23 and 17) and 42"
       (ast/binop
         "and"
-        (ast/binop
-          "and"
-          (ast/number 23)
-          (ast/number 17))
+        (ast/binop "and" (ast/number 23) (ast/number 17))
         (ast/number 42)))
     (cb/ast
       "right grouped"
@@ -214,23 +224,14 @@
       (ast/binop
         "and"
         (ast/number 23)
-        (ast/binop
-          "and"
-          (ast/number 17)
-          (ast/number 42))))
+        (ast/binop "and" (ast/number 17) (ast/number 42))))
     (cb/ast
       "multiple groupings"
       "(23 and 17) and (5 and 42)"
       (ast/binop
         "and"
-        (ast/binop
-          "and"
-          (ast/number 23)
-          (ast/number 17))
-        (ast/binop
-          "and"
-          (ast/number 5)
-          (ast/number 42))))
+        (ast/binop "and" (ast/number 23) (ast/number 17))
+        (ast/binop "and" (ast/number 5) (ast/number 42))))
     (cb/ast
       "nested groupings"
       "((23 and (17 and 5)) and 42)"
@@ -239,11 +240,23 @@
         (ast/binop
           "and"
           (ast/number 23)
-          (ast/binop
-            "and"
-            (ast/number 17)
-            (ast/number 5)))
+          (ast/binop "and" (ast/number 17) (ast/number 5)))
         (ast/number 42)))))
+
+(define (g/ast/operators/ternary)
+  (t/group "ternary"
+    (cb/ast
+      "simple"
+      "$a ?? $b !! $c"
+      (ast/ternop ast/$a ast/$b ast/$c))
+    (cb/ast
+      "chained"
+      "$a ?? $b !! $c ?? $d !! $e"
+      (ast/ternop ast/$a ast/$b (ast/ternop ast/$c ast/$d ast/$e)))
+    (cb/ast
+      "nested"
+      "$a ?? $b ?? $c !! $d !! $e"
+      (ast/ternop ast/$a (ast/ternop ast/$b ast/$c ast/$d) ast/$e))))
 
 (define (op-group/binary/left title op)
   (t/group
@@ -356,7 +369,8 @@
     g/ast/operators/low-and
     g/ast/operators/low-not
     g/ast/operators/assign
-    g/ast/operators/assign/sc))
+    g/ast/operators/assign/sc
+    g/ast/operators/ternary))
 
 (define (g/ast)
   (t/group
