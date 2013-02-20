@@ -395,6 +395,12 @@
 (define (g/ast/operators/high-not)
   (op-group/unary/prefix "high not" "!"))
 
+(define (g/ast/operators/math)
+  (op-group/binary/left "add" "+")
+  (op-group/binary/left "add" "-")
+  (op-group/binary/left "add" "*")
+  (op-group/binary/left "add" "/"))
+
 (define (g/ast/operators/assign)
   (t/group
     "assignment"
@@ -429,7 +435,8 @@
     g/ast/operators/compare/string
     g/ast/operators/compare/number
     g/ast/operators/smart
-    g/ast/operators/concat))
+    g/ast/operators/concat
+    g/ast/operators/math))
 
 (define (g/ast)
   (t/group

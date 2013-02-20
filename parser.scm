@@ -68,6 +68,8 @@
              ((value-is "//")                   'OP_H_ERR)
              ((value-is "&&")                   'OP_H_AND)
              ((value-is-any '("<=>" "~~"))      'OP_COMPARE)
+             ((value-is-any '("+" "-"))         'OP_L_MATH)
+             ((value-is-any '("*" "/"))         'OP_H_MATH)
              ((value-is-any op/assign)          'OP_ASSIGN_SC)
              ((value-is-any op/equality/number) 'OP_EQUAL)
              (else (error (string-concatenate
