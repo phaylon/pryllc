@@ -55,6 +55,7 @@
              ((value-is "or")                   'OP_L_OR)
              ((value-is "not")                  'OP_L_NOT)
              ((value-is "err")                  'OP_L_ERR)
+             ((value-is "cmp")                  'OP_COMPARE)
              ((value-is-any op/equality/string) 'OP_EQUAL)
              (else type)))
       ((OPWORD)
@@ -64,6 +65,7 @@
              ((value-is "||")                   'OP_H_OR)
              ((value-is "//")                   'OP_H_ERR)
              ((value-is "&&")                   'OP_H_AND)
+             ((value-is-any '("<=>" "~~"))      'OP_COMPARE)
              ((value-is-any op/assign)          'OP_ASSIGN_SC)
              ((value-is-any op/equality/number) 'OP_EQUAL)
              (else (error (string-concatenate

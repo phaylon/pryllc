@@ -368,21 +368,24 @@
 
 (define (g/ast/operators/low-or)
   (op-group/binary/left "low or" "or"))
-
 (define (g/ast/operators/low-err)
   (op-group/binary/left "low err" "err"))
-
 (define (g/ast/operators/low-and)
   (op-group/binary/left "low and" "and"))
 
 (define (g/ast/operators/high-or)
   (op-group/binary/left "high or" "||"))
-
 (define (g/ast/operators/high-err)
   (op-group/binary/left "high err" "//"))
-
 (define (g/ast/operators/high-and)
   (op-group/binary/left "high and" "&&"))
+
+(define (g/ast/operators/compare/string)
+  (op-group/binary/left "string compare" "cmp"))
+(define (g/ast/operators/compare/number)
+  (op-group/binary/left "number compare" "<=>"))
+(define (g/ast/operators/smart)
+  (op-group/binary/left "smart match" "~~"))
 
 (define (g/ast/operators/low-not)
   (op-group/unary/prefix "low not" "not"))
@@ -416,7 +419,10 @@
     g/ast/operators/high-or
     g/ast/operators/high-err
     g/ast/operators/high-and
-    g/ast/operators/equality))
+    g/ast/operators/equality
+    g/ast/operators/compare/string
+    g/ast/operators/compare/number
+    g/ast/operators/smart))
 
 (define (g/ast)
   (t/group
