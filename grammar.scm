@@ -12,7 +12,8 @@
    (right: OP_L_NOT)
    (right: OP_ASSIGN OP_ASSIGN_SC)
    (right: OP_TERN_THEN OP_TERN_ELSE)
-   (left:  OP_H_OR OP_H_ERR))
+   (left:  OP_H_OR OP_H_ERR)
+   (left:  OP_H_AND))
 
   (document
         (statements)
@@ -45,6 +46,8 @@
             : (make-assign/sc $2 $1 $3)
         (OP_L_NOT expression)
             : (make-unary-operator $1 $2 'prefix)
+        (expression OP_H_AND expression)
+            : (make-binary-operator $2 $1 $3)
         (expression OP_H_OR expression)
             : (make-binary-operator $2 $1 $3)
         (expression OP_H_ERR expression)
