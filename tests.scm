@@ -196,6 +196,55 @@
       "empty document"
       "")))
 
+(define (g/ast/groupings)
+  (t/group "groupings"
+    (cb/ast
+      "left grouped"
+      "(23 and 17) and 42"
+      (ast/binop
+        "and"
+        (ast/binop
+          "and"
+          (ast/number 23)
+          (ast/number 17))
+        (ast/number 42)))
+    (cb/ast
+      "right grouped"
+      "23 and (17 and 42)"
+      (ast/binop
+        "and"
+        (ast/number 23)
+        (ast/binop
+          "and"
+          (ast/number 17)
+          (ast/number 42))))
+    (cb/ast
+      "multiple groupings"
+      "(23 and 17) and (5 and 42)"
+      (ast/binop
+        "and"
+        (ast/binop
+          "and"
+          (ast/number 23)
+          (ast/number 17))
+        (ast/binop
+          "and"
+          (ast/number 5)
+          (ast/number 42))))
+    (cb/ast
+      "nested groupings"
+      "((23 and (17 and 5)) and 42)"
+      (ast/binop
+        "and"
+        (ast/binop
+          "and"
+          (ast/number 23)
+          (ast/binop
+            "and"
+            (ast/number 17)
+            (ast/number 5)))
+        (ast/number 42)))))
+
 (define (op-group/binary/left title op)
   (t/group
     title
@@ -315,7 +364,8 @@
     g/ast/numbers
     g/ast/document
     g/ast/operators
-    g/ast/variables))
+    g/ast/variables
+    g/ast/groupings))
 
 (g/ast)
 

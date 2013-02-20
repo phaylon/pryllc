@@ -31,6 +31,8 @@
       (OPWORD       ($ ,opword))
       (FLOAT        ($ ,digits "." ,digits))
       (INT          ($ ,digits))
+      (PARENS_L     ($ "("))
+      (PARENS_R     ($ ")"))
       (SEMICOLON    ($ (+ ";")))))
 
   (define op/assign

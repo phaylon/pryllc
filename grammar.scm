@@ -4,12 +4,14 @@
   (output: parser "grammar.yy.scm")
   (expect: 5)
 
-  (INT FLOAT SEMICOLON BAREWORD LEXVAR
-    (left:  OP_L_OR)
-    (left:  OP_L_ERR)
-    (left:  OP_L_AND)
-    (right: OP_L_NOT)
-    (right: OP_ASSIGN OP_ASSIGN_SC))
+  (INT FLOAT BAREWORD LEXVAR
+   SEMICOLON
+   PARENS_L PARENS_R
+   (left:  OP_L_OR)
+   (left:  OP_L_ERR)
+   (left:  OP_L_AND)
+   (right: OP_L_NOT)
+   (right: OP_ASSIGN OP_ASSIGN_SC))
 
   (document
         (statements)
@@ -52,6 +54,8 @@
             : $1)
 
   (atom
+        (PARENS_L expression PARENS_R)
+            : $2
         (lexical-variable)
             : $1
         (BAREWORD)
