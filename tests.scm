@@ -161,6 +161,24 @@
     (cb/slot 'operator (cb/is t/eq op))
     (cb/slot 'operand  operand)))
 
+(define (ast/assign target source)
+  (cb/object
+    <ast-assign>
+    (cb/slot 'target     target)
+    (cb/slot 'expression source)))
+
+(define (ast/lexvar name)
+  (cb/object
+    <ast-variable-lexical>
+    (cb/slot 'value (cb/is t/eq name))))
+
+(define (g/ast/variables)
+  (t/group "variables"
+    (cb/ast "simple lexical" "$foo" (ast/lexvar "$foo"))
+    (cb/ast "underscore lexical" "$_foo" (ast/lexvar "$_foo"))
+    (cb/ast "topic lexical" "$_" (ast/lexvar "$_"))
+    (cb/ast "numbered lexival" "$v23" (ast/lexvar "$v23"))))
+
 (define (g/ast/numbers)
   (t/group "numbers"
     (cb/ast "simple integer" "23" (ast/number 23))
@@ -223,20 +241,38 @@
 (define (g/ast/operators/low-not)
   (op-group/unary/prefix "low not" "not"))
 
+(define (g/ast/operators/assign)
+  (t/group
+    "assignment"
+    (cb/ast
+      "single assignment"
+      "$foo = 23"
+      (ast/assign (ast/lexvar "$foo") (ast/number 23)))
+    (cb/ast
+      "multiple assignments"
+      "$foo = $bar = 23"
+      (ast/assign
+        (ast/lexvar "$foo")
+        (ast/assign
+          (ast/lexvar "$bar")
+          (ast/number 23))))))
+
 (define (g/ast/operators)
   (t/group
     "operators"
     g/ast/operators/low-or
     g/ast/operators/low-err
     g/ast/operators/low-and
-    g/ast/operators/low-not))
+    g/ast/operators/low-not
+    g/ast/operators/assign))
 
 (define (g/ast)
   (t/group
     "ast"
     g/ast/numbers
     g/ast/document
-    g/ast/operators))
+    g/ast/operators
+    g/ast/variables))
 
 (g/ast)
 

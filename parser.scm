@@ -2,9 +2,9 @@
 
 (module parsing (source->ast)
   (import scheme)
-  (import srfi-1)
+  (import srfi-1 srfi-13)
   (import chicken)
-  (require-extension lalr-driver irregex)
+  (require-extension srfi-1 srfi-13 lalr-driver irregex)
  
   (import ast)
 
@@ -14,6 +14,10 @@
   (define bareword
     '(: (+ (or (/ "az") "_"))
         (* (or (/ "az") (/ "09") "_"))))
+  (define opword
+    '(+ ("+-*/=<>~")))
+  (define lexvar
+    `(: "$" ,bareword))
 
   (define (dbg title value)
     (map display (list title " " value))
@@ -22,21 +26,33 @@
 
   (define token-patterns
     `((DISCARD      whitespace)
+      (LEXVAR       ($ ,lexvar))
       (BAREWORD     ($ ,bareword))
+      (OPWORD       ($ ,opword))
       (FLOAT        ($ ,digits "." ,digits))
       (INT          ($ ,digits))
       (SEMICOLON    ($ (+ ";")))))
 
+  (define op/assign
+    (list "+=" "-=" "*=" "/=" "~=" "//=" "||=" "&&="))
+
   (define (clear-token-type type value)
     (define (value-is test)
       (string=? value test))
+    (define (value-is-any ls)
+      (< 0 (length (filter (lambda (str) (value-is str)) ls))))
     (case type
       ((BAREWORD)
-       (cond ((value-is "and") 'OP_L_AND)
-             ((value-is "or")  'OP_L_OR)
-             ((value-is "not") 'OP_L_NOT)
-             ((value-is "err") 'OP_L_ERR)
+       (cond ((value-is "and")          'OP_L_AND)
+             ((value-is "or")           'OP_L_OR)
+             ((value-is "not")          'OP_L_NOT)
+             ((value-is "err")          'OP_L_ERR)
              (else type)))
+      ((OPWORD)
+       (cond ((value-is "=")            'OP_ASSIGN)
+             ((value-is-any op/assign)  'OP_ASSIGN_SC)
+             (else (error (string-concatenate
+                            (list "Invalid op " value))))))
       (else type)))
 
   (define (say . ls)
@@ -78,8 +94,8 @@
                   (next-token token-patterns)
                   (let ((location (get-location)))
                     (make-lexical-token
-;                      (dbg "TYPE" (clear-token-type type str))
-                      (clear-token-type type str)
+                      (dbg "TYPE" (clear-token-type type str))
+;                      (clear-token-type type str)
                       (pryll-location->source-location location)
                       `(,str ,location)))))
               (next-token rest))))))

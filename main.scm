@@ -4,7 +4,9 @@
 (import parsing)
 (import ast)
 
-(define ast (source->ast "test" "not 23 or 17"))
+(define source (cadddr (argv)))
+
+(define ast (source->ast "command line" source))
 (define (say . ls) (map display ls) (newline))
 
 (pretty-print (debug-dump ast))

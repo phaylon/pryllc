@@ -77,6 +77,30 @@
     (string->symbol (slot-value bw 'value)))
 
 ;;
+;; lexical variables
+;;
+
+  (define-class <ast-variable-lexical> ()
+    ((location)
+     (value)))
+
+  (define-method (debug-dump (var <ast-variable-lexical>))
+    `(lex ,(string->symbol (slot-value var 'value))))
+
+;;
+;; assignments
+;;
+
+  (define-class <ast-assign> ()
+    ((location)
+     (target     reader: target)
+     (expression reader: expression)))
+
+  (define-method (debug-dump (assign <ast-assign>))
+    `(assign ,(debug-dump (target assign))
+             ,(debug-dump (expression assign))))
+
+;;
 ;; generators
 ;;
 
@@ -107,6 +131,17 @@
     (make <ast-bareword>
       'location (token-location token)
       'value    (token-value token)))
+
+  (define (make-lexical-variable token)
+    (make <ast-variable-lexical>
+      'location (token-location token)
+      'value    (token-value token)))
+
+  (define (make-assign op target expression)
+    (make <ast-assign>
+      'location   (token-location op)
+      'target     target
+      'expression expression))
 
   (define (make-document statements)
     (make <ast-document>
