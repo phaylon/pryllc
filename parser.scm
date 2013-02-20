@@ -54,6 +54,8 @@
        (cond ((value-is "=")            'OP_ASSIGN)
              ((value-is "??")           'OP_TERN_THEN)
              ((value-is "!!")           'OP_TERN_ELSE)
+             ((value-is "||")           'OP_H_OR)
+             ((value-is "//")           'OP_H_ERR)
              ((value-is-any op/assign)  'OP_ASSIGN_SC)
              (else (error (string-concatenate
                             (list "Invalid op " value))))))

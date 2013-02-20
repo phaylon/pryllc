@@ -47,6 +47,7 @@
   (set! t/fail-cnt (+ t/fail-cnt 1))
   (map display (list (t/indent) "not ok " (t/next-index) " - " title))
   (newline)
+  (error "test failed")
   #f)
 
 (define (t/ok value title)
@@ -342,6 +343,12 @@
 (define (g/ast/operators/low-and)
   (op-group/binary/left "low and" "and"))
 
+(define (g/ast/operators/high-or)
+  (op-group/binary/left "high or" "||"))
+
+(define (g/ast/operators/high-err)
+  (op-group/binary/left "high err" "//"))
+
 (define (g/ast/operators/low-not)
   (op-group/unary/prefix "low not" "not"))
 
@@ -370,7 +377,9 @@
     g/ast/operators/low-not
     g/ast/operators/assign
     g/ast/operators/assign/sc
-    g/ast/operators/ternary))
+    g/ast/operators/ternary
+    g/ast/operators/high-or
+    g/ast/operators/high-err))
 
 (define (g/ast)
   (t/group

@@ -7,12 +7,12 @@
   (INT FLOAT BAREWORD LEXVAR
    SEMICOLON
    PARENS_L PARENS_R
-   (left:  OP_L_OR)
-   (left:  OP_L_ERR)
+   (left:  OP_L_OR OP_L_ERR)
    (left:  OP_L_AND)
    (right: OP_L_NOT)
    (right: OP_ASSIGN OP_ASSIGN_SC)
-   (right: OP_TERN_THEN OP_TERN_ELSE))
+   (right: OP_TERN_THEN OP_TERN_ELSE)
+   (left:  OP_H_OR OP_H_ERR))
 
   (document
         (statements)
@@ -45,6 +45,10 @@
             : (make-assign/sc $2 $1 $3)
         (OP_L_NOT expression)
             : (make-unary-operator $1 $2 'prefix)
+        (expression OP_H_OR expression)
+            : (make-binary-operator $2 $1 $3)
+        (expression OP_H_ERR expression)
+            : (make-binary-operator $2 $1 $3)
         (expression OP_L_AND expression)
             : (make-binary-operator $2 $1 $3)
         (expression OP_L_OR expression)
