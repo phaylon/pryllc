@@ -113,6 +113,12 @@
         (op-equal-binary)
             : $1
         (expression 
+         OP_METHOD_REF
+         method
+         opt-qmark
+         arguments)
+            : (make-method-ref $2 $1 $3 $4 $5)
+        (expression 
          OP_METHOD_CALL
          method
          opt-qmark

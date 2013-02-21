@@ -231,6 +231,14 @@
         (cb/slot 'method met)
         (cb/slot 'arguments (apply ast/args args))))))
 
+(define (ast/method-ref maybe inv met . args)
+  (apply ast/method-op
+    <ast-method-ref>
+    `((is-maybe? ,maybe))
+    inv
+    met
+    args))
+
 (define (ast/method-call maybe chained inv met . args)
   (apply ast/method-op
     <ast-method-call>
@@ -628,8 +636,23 @@
         c1
         (ast/named (ast/ident "x") (ast/number 23))
         (ast/splice-% (ast/lexvar "$baz"))
-        (ast/named (ast/ident "z") (ast/number 17))))
-    ))
+        (ast/named (ast/ident "z") (ast/number 17))))))
+
+(define (g/ast/operators/method-ref)
+  (let ((test (lambda (maybe inv met . args)
+                (apply ast/method-ref maybe inv met args))))
+    (op-group/method/common
+      test
+      "fixed method ref"
+      ".&"
+      "bar" (ast/string "bar")
+      "baz" (ast/string "baz"))
+    (op-group/method/common
+      test
+      "variable method ref"
+      ".&"
+      "$mbar" (ast/lexvar "$mbar")
+      "$mbaz" (ast/lexvar "$mbaz"))))
 
 (define (g/ast/operators/method-call)
   (let ((test (lambda (maybe inv met . args)
@@ -738,7 +761,8 @@
     g/ast/operators/concat
     g/ast/operators/math
     g/ast/operators/num-signs
-    g/ast/operators/method-call))
+    g/ast/operators/method-call
+    g/ast/operators/method-ref))
 
 (define (g/ast)
   (t/group

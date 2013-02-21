@@ -131,6 +131,32 @@
                       (items eq))))
 
 ;;
+;; method refs
+;;
+
+  (define-class <ast-method-ref> ()
+    ((location)
+     (is-maybe?     reader: is-maybe?)
+     (invocant      reader: invocant)
+     (method        reader: method)
+     (arguments     reader: arguments)))
+
+  (define-method (debug-dump (mc <ast-method-ref>))
+    `(call-method
+      ,@(if (is-maybe? mc)   '(maybe:)   '())
+      ,(debug-dump (invocant mc))
+      ,(debug-dump (method mc))
+      ,(debug-dump (arguments mc))))
+
+  (define (make-method-ref op inv met maybe args)
+    (make <ast-method-ref>
+      'location     (token-location op)
+      'is-maybe?    maybe
+      'invocant     inv
+      'method       met
+      'arguments    args))
+
+;;
 ;; method call
 ;;
 
