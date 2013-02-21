@@ -8,6 +8,7 @@
    SEMICOLON
    COLON COMMA
    PARENS_L PARENS_R
+   BRACKET_L BRACKET_R
    QMARK
    SPLICE_ARRAY SPLICE_HASH
    (left:  OP_L_OR OP_L_ERR)
@@ -95,6 +96,24 @@
         ()
             : (make-arguments '()))
 
+  (array-item
+        (splice-array)  : $1
+        (expression)    : $1)
+
+  (array-rest
+        (array-item COMMA array-rest)
+            : (cons $1 $3)
+        (array-item)
+            : (cons $1 '())
+        (COMMA)
+            : '()
+        ()
+            : '())
+
+  (array
+        (BRACKET_L array-rest BRACKET_R)
+            : (make-array $1 $2))
+
   (method
         (identifier-lax)    : (identifier->string $1)
         (lexical-variable)  : $1)
@@ -169,6 +188,8 @@
   (atom
         (PARENS_L expression PARENS_R)
             : $2
+        (array)
+            : $1
         (lexical-variable)
             : $1
         (BAREWORD)

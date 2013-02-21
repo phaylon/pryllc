@@ -206,6 +206,16 @@
 (define (ast/splice-@ expr)
   (ast/splice <ast-splice-array> expr))
 
+(define (ast/array . items)
+  (cb/object
+    <ast-array>
+    (cb/slot
+      'items
+      (apply
+        cb/list
+        "array elements"
+        items))))
+
 (define (ast/args . items)
   (cb/object
     <ast-arguments>
@@ -740,6 +750,41 @@
           (ast/lexvar "$bar")
           (ast/number 23))))))
 
+(define (g/ast/arrays)
+  (t/group
+    "arrays"
+    (cb/ast
+      "empty array"
+      "[]"
+      (ast/array))
+    (cb/ast
+      "single element"
+      "[23]"
+      (ast/array (ast/number 23)))
+    (cb/ast
+      "multiple elements"
+      "[2, 3, 4]"
+      (ast/array (ast/number 2) (ast/number 3) (ast/number 4)))
+    (cb/ast
+      "trailing comma"
+      "[2, 3, 4,]"
+      (ast/array (ast/number 2) (ast/number 3) (ast/number 4)))
+    (cb/ast
+      "nested"
+      "[2, [3, 4], 5]"
+      (ast/array
+        (ast/number 2)
+        (ast/array (ast/number 3) (ast/number 4))
+        (ast/number 5)))
+    (cb/ast
+      "spliced"
+      "[2, @$foo, @[3, 4], 5]"
+      (ast/array
+        (ast/number 2)
+        (ast/splice-@ (ast/lexvar "$foo"))
+        (ast/splice-@ (ast/array (ast/number 3) (ast/number 4)))
+        (ast/number 5)))))
+
 (define (g/ast/operators)
   (t/group
     "operators"
@@ -771,7 +816,8 @@
     g/ast/document
     g/ast/operators
     g/ast/variables
-    g/ast/groupings))
+    g/ast/groupings
+    g/ast/arrays))
 
 (g/ast)
 
