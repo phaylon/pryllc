@@ -180,6 +180,66 @@
     (cb/slot 'consequence conseq)
     (cb/slot 'alternative alter)))
 
+(define (ast/string value)
+  (cb/object
+    <ast-string>
+    (cb/slot 'value (cb/is t/eq value))))
+
+(define (ast/ident value)
+  (cb/object
+    <ast-identifier>
+    (cb/slot 'value (cb/is t/eq value))))
+
+(define (ast/named name value)
+  (cb/object
+    <ast-named-value>
+    (cb/slot 'name  name)
+    (cb/slot 'value value)))
+
+(define (ast/splice class expr)
+  (cb/object
+    class
+    (cb/slot 'expression expr)))
+
+(define (ast/splice-% expr)
+  (ast/splice <ast-splice-hash> expr))
+(define (ast/splice-@ expr)
+  (ast/splice <ast-splice-array> expr))
+
+(define (ast/args . items)
+  (cb/object
+    <ast-arguments>
+    (cb/slot
+      'items
+      (apply
+        cb/list
+        "arguments"
+        items))))
+
+(define (ast/method-op class flags inv met . args)
+  (apply
+    cb/object
+    class
+    (append
+      (map (lambda (pair)
+             (let ((slot     (car pair))
+                   (expected (cadr pair)))
+               (cb/slot slot (cb/is equal? expected))))
+           flags)
+      (list
+        (cb/slot 'invocant inv)
+        (cb/slot 'method met)
+        (cb/slot 'arguments (apply ast/args args))))))
+
+(define (ast/method-call maybe chained inv met . args)
+  (apply ast/method-op
+    <ast-method-call>
+    `((is-maybe? ,maybe)
+      (is-chained? ,chained))
+    inv
+    met
+    args))
+
 (define (ast/eq . items)
   (cb/object
     <ast-equality-operation>
@@ -435,6 +495,212 @@
   (op-group/binary/left "add" "*")
   (op-group/binary/left "add" "/"))
 
+(define (op-group/method/common test title op m1 c1 m2 c2)
+  (t/group
+    (text title " common")
+    (cb/ast
+      "variable invocant, no flags, no arguments"
+      (text "$foo" op m1)
+      (test #f
+        (ast/lexvar "$foo")
+        c1))
+    (cb/ast
+      "grouping invocant, no flags, no arguments"
+      (text "($foo + $bar)" op m1)
+      (test #f
+        (ast/binop "+" (ast/lexvar "$foo") (ast/lexvar "$bar"))
+        c1))
+    (cb/ast
+      "call again on result"
+      (text "$foo" op m1 op m2)
+      (test #f
+        (test #f
+          (ast/lexvar "$foo")
+          c1)
+        c2))
+    (cb/ast
+      "maybe flag, bareword method, no arguments"
+      (text "$foo" op m1 "?")
+      (test #t
+        (ast/lexvar "$foo")
+        c1))
+    (cb/ast
+      "no flags, bareword method, empty arguments"
+      (text "$foo" op m1 "()")
+      (test #f
+        (ast/lexvar "$foo")
+        c1))
+    (cb/ast
+      "no flags, bareword method, single pos argument"
+      (text "$foo" op m1 "(23)")
+      (test #f
+        (ast/lexvar "$foo")
+        c1
+        (ast/number 23)))
+    (cb/ast
+      "no flags, bareword method, single named argument"
+      (text "$foo" op m1 "(baz: 23)")
+      (test #f
+        (ast/lexvar "$foo")
+        c1
+        (ast/named (ast/ident "baz") (ast/number 23))))
+    (cb/ast
+      "no flags, bareword method, multiple pos arguments"
+      (text "$foo" op m1 "(23, 17, 28)")
+      (test #f
+        (ast/lexvar "$foo")
+        c1
+        (ast/number 23)
+        (ast/number 17)
+        (ast/number 28)))
+    (cb/ast
+      "no flags, bareword method, multiple named arguments"
+      (text "$foo" op m1 "(x: 23, y: 17, z: 28)")
+      (test #f
+        (ast/lexvar "$foo")
+        c1
+        (ast/named (ast/ident "x") (ast/number 23))
+        (ast/named (ast/ident "y") (ast/number 17))
+        (ast/named (ast/ident "z") (ast/number 28))))
+    (cb/ast
+      "no flags, bareword method, dynamically named argument"
+      (text "$foo" op m1 "((23 + 17): 42, $bar: 17)")
+      (test #f
+        (ast/lexvar "$foo")
+        c1
+        (ast/named
+          (ast/binop "+" (ast/number 23) (ast/number 17))
+          (ast/number 42))
+        (ast/named
+          (ast/lexvar "$bar")
+          (ast/number 17))))
+    (cb/ast
+      "no flags, bareword method, mixed arguments"
+      (text "$foo" op m1 "(23, 17, x: 42, y: 28)")
+      (test #f
+        (ast/lexvar "$foo")
+        c1
+        (ast/number 23)
+        (ast/number 17)
+        (ast/named (ast/ident "x") (ast/number 42))
+        (ast/named (ast/ident "y") (ast/number 28))))
+    (cb/ast
+      "maybe flag, bareword method, single argument"
+      (text "$foo" op m1 "?(23)")
+      (test #t
+        (ast/lexvar "$foo")
+        c1
+        (ast/number 23)))
+    (cb/ast
+      "maybe flag, bareword methods, single argument called on result"
+      (text "$foo" op m1 "?(23)" op m2 "?(17)")
+      (test #t
+        (test #t
+          (ast/lexvar "$foo")
+          c1
+          (ast/number 23))
+        c2
+        (ast/number 17)))
+    (cb/ast
+      "no flags, bareword methods, single argument called on result"
+      (text "$foo" op m1 "(23)" op m2 "(17)")
+      (test #f
+        (test #f
+          (ast/lexvar "$foo")
+          c1
+          (ast/number 23))
+        c2
+        (ast/number 17)))
+    (cb/ast
+      "positinoal argument splices"
+      (text "$foo" op m1 "(23, @$baz, 17)")
+      (test #f
+        (ast/lexvar "$foo")
+        c1
+        (ast/number 23)
+        (ast/splice-@ (ast/lexvar "$baz"))
+        (ast/number 17)))
+    (cb/ast
+      "named argument splices"
+      (text "$foo" op m1 "(x: 23, %$baz, z: 17)")
+      (test #f
+        (ast/lexvar "$foo")
+        c1
+        (ast/named (ast/ident "x") (ast/number 23))
+        (ast/splice-% (ast/lexvar "$baz"))
+        (ast/named (ast/ident "z") (ast/number 17))))
+    ))
+
+(define (g/ast/operators/method-call)
+  (let ((test (lambda (maybe inv met . args)
+                (apply ast/method-call maybe #f inv met args))))
+    (op-group/method/common
+      test
+      "fixed method call"
+      "."
+      "bar" (ast/string "bar")
+      "baz" (ast/string "baz"))
+    (op-group/method/common
+      test
+      "variable method call"
+      "."
+      "$mbar" (ast/lexvar "$mbar")
+      "$mbaz" (ast/lexvar "$mbaz")))
+  (t/group
+    "chained flag"
+    (cb/ast
+      "chained flag, no arguments"
+      (text "$foo.bar!")
+      (ast/method-call #f #t
+        (ast/lexvar "$foo")
+        (ast/string "bar")))
+    (cb/ast
+      "chained flag, with arguments"
+      "$foo.bar!(23)"
+      (ast/method-call #f #t
+        (ast/lexvar "$foo")
+        (ast/string "bar")
+        (ast/number 23)))
+    (cb/ast
+      "could be a high not op"
+      "$foo.bar !+23"
+      (ast/binop "+"
+        (ast/method-call #f #t
+          (ast/lexvar "$foo")
+          (ast/string "bar"))
+        (ast/number 23)))
+    (cb/ast
+      "multiple chained calls, no arguments"
+      "$foo.bar!.baz!"
+      (ast/method-call #f #t
+        (ast/method-call #f #t
+          (ast/lexvar "$foo")
+          (ast/string "bar"))
+        (ast/string "baz")))
+    (cb/ast
+      "multiple chained calls, with arguments"
+      "$foo.bar!(23).baz!(17)"
+      (ast/method-call #f #t
+        (ast/method-call #f #t
+          (ast/lexvar "$foo")
+          (ast/string "bar")
+          (ast/number 23))
+        (ast/string "baz")
+        (ast/number 17)))
+    (cb/ast
+      "optinoal chained call, no arguments"
+      "$foo.bar?!"
+      (ast/method-call #t #t
+        (ast/lexvar "$foo")
+        (ast/string "bar")))
+    (cb/ast
+      "optional chained call, with arguments"
+      "$foo.bar?!(23)"
+      (ast/method-call #t #t
+        (ast/lexvar "$foo")
+        (ast/string "bar")
+        (ast/number 23)))))
+
 (define (g/ast/operators/assign)
   (t/group
     "assignment"
@@ -471,7 +737,8 @@
     g/ast/operators/smart
     g/ast/operators/concat
     g/ast/operators/math
-    g/ast/operators/num-signs))
+    g/ast/operators/num-signs
+    g/ast/operators/method-call))
 
 (define (g/ast)
   (t/group

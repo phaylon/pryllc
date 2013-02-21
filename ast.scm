@@ -131,6 +131,134 @@
                       (items eq))))
 
 ;;
+;; method call
+;;
+
+  (define-class <ast-method-call> ()
+    ((location)
+     (is-maybe?     reader: is-maybe?)
+     (is-chained?   reader: is-chained?)
+     (invocant      reader: invocant)
+     (method        reader: method)
+     (arguments     reader: arguments)))
+
+  (define-method (debug-dump (mc <ast-method-call>))
+    `(call-method
+      ,@(if (is-maybe? mc)   '(maybe:)   '())
+      ,@(if (is-chained? mc) '(chained:) '())
+      ,(debug-dump (invocant mc))
+      ,(debug-dump (method mc))
+      ,(debug-dump (arguments mc))))
+
+  (define (make-method-call op inv met maybe chained args)
+    (make <ast-method-call>
+      'location     (token-location op)
+      'is-maybe?    maybe
+      'is-chained?  chained
+      'invocant     inv
+      'method       met
+      'arguments    args))
+
+;;
+;; named values
+;;
+
+  (define-class <ast-named-value> ()
+    ((location)
+     (name  reader: name)
+     (value reader: value)))
+
+  (define-method (debug-dump (nv <ast-named-value>))
+    `(named
+      ,(debug-dump (name nv))
+      ,(debug-dump (value nv))))
+
+  (define (make-named-value op name value)
+    (make <ast-named-value>
+      'location (token-location op)
+      'name     name
+      'value    value))
+
+;;
+;; arguments
+;;
+
+  (define-class <ast-arguments> ()
+    ((items reader: items)))
+
+  (define-method (debug-dump (args <ast-arguments>))
+    `(args ,@(map (lambda (i) (debug-dump i)) (items args))))
+
+  (define (make-arguments ls)
+    (make <ast-arguments>
+      'items ls))
+
+;;
+;; identifiers
+;;
+
+  (define-class <ast-identifier> ()
+    ((location)
+     (value reader: value)))
+
+  (define-method (debug-dump (id <ast-identifier>))
+    `(ident ,(value id)))
+
+  (define (make-identifier token)
+    (make <ast-identifier>
+      'location (token-location token)
+      'value    (token-value token)))
+
+;;
+;; strings
+;;
+
+  (define-class <ast-string> ()
+    ((location)
+     (value reader: value)))
+
+  (define-method (debug-dump (str <ast-string>))
+    `(str ,(value str)))
+
+  (define (make-string-value token)
+    (make <ast-string>
+      'location (token-location token)
+      'value    (token-value token)))
+
+  (define (identifier->string ident)
+    (make <ast-string>
+      'location (slot-value ident 'location)
+      'value    (value ident)))
+
+;;
+;; splices
+;;
+
+  (define-class <ast-splice-hash> ()
+    ((location)
+     (expression reader: expression)))
+
+  (define-method (debug-dump (sp <ast-splice-hash>))
+    `(% ,(debug-dump (expression sp))))
+
+  (define (make-hash-splice token expr)
+    (make <ast-splice-hash>
+      'location     (token-location token)
+      'expression   expr))
+
+  (define-class <ast-splice-array> ()
+    ((location)
+     (expression reader: expression)))
+
+  (define-method (debug-dump (sp <ast-splice-array>))
+    `(@ ,(debug-dump (expression sp))))
+
+  (define (make-array-splice token expr)
+    (make <ast-splice-array>
+      'location     (token-location token)
+      'expression   expr))
+
+;;
 ;; generators
 ;;
 

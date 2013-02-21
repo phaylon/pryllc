@@ -6,7 +6,10 @@
 
   (INT FLOAT BAREWORD LEXVAR
    SEMICOLON
+   COLON COMMA
    PARENS_L PARENS_R
+   QMARK
+   SPLICE_ARRAY SPLICE_HASH
    (left:  OP_L_OR OP_L_ERR)
    (left:  OP_L_AND)
    (right: OP_L_NOT)
@@ -19,7 +22,8 @@
    (left:  OP_CONCAT)
    (left:  OP_PLUS OP_MINUS)
    (left:  OP_H_MATH)
-   (right: num-sign))
+   (right: num-sign)
+   (left:  OP_METHOD_CALL OP_METHOD_REF))
 
   (document
         (statements)
@@ -47,11 +51,74 @@
         (expression OP_EQUAL expression)
             : (make-equality-operations $2 $1 $3))
 
+  ; TODO split out identifier compare and equal ops
+  (identifier-lax
+        (BAREWORD)  : (make-identifier $1)
+        (OP_L_OR)   : (make-identifier $1)
+        (OP_L_ERR)  : (make-identifier $1)
+        (OP_L_AND)  : (make-identifier $1)
+        (OP_L_NOT)  : (make-identifier $1))
+
+  (named-value
+        (identifier-lax COLON expression)
+            : (make-named-value $2 $1 $3)
+        (expression COLON expression)
+            : (make-named-value $2 $1 $3))
+
+  (splice-array
+        (SPLICE_ARRAY expression)
+            : (make-array-splice $1 $2))
+
+  (splice-hash
+        (SPLICE_HASH expression)
+            : (make-hash-splice $1 $2))
+
+  (argument-item
+        (named-value)   : $1
+        (splice-array)  : $1
+        (splice-hash)   : $1
+        (expression)    : $1)
+
+  (arguments-rest
+        (argument-item COMMA arguments-rest)
+            : (cons $1 $3)
+        (argument-item)
+            : (cons $1 '())
+        (COMMA)
+            : '()
+        ()
+            : '())
+
+  (arguments
+        (PARENS_L arguments-rest PARENS_R)
+            : (make-arguments $2)
+        ()
+            : (make-arguments '()))
+
+  (method
+        (identifier-lax)    : (identifier->string $1)
+        (lexical-variable)  : $1)
+
+  (opt-qmark
+        (QMARK)     : #t
+        ()          : #f)
+
+  (opt-emark
+        (EMARK)     : #t
+        ()          : #f)
+
   (expression
         (atom)
             : $1
         (op-equal-binary)
             : $1
+        (expression 
+         OP_METHOD_CALL
+         method
+         opt-qmark
+         opt-emark
+         arguments)
+            : (make-method-call $2 $1 $3 $4 $5 $6)
         (expression OP_TERN_THEN expression OP_TERN_ELSE expression)
             : (make-ternary-operator $2 $1 $3 $5)
         (assignable OP_ASSIGN expression)
