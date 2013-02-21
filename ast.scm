@@ -206,6 +206,22 @@
       'value    value))
 
 ;;
+;; hashes
+;;
+
+  (define-class <ast-hash> ()
+    ((location)
+     (items reader: items)))
+
+  (define-method (debug-dump (hash <ast-hash>))
+    `(hash ,@(map debug-dump (items hash))))
+
+  (define (make-hash op items)
+    (make <ast-hash>
+      'location (token-location op)
+      'items    items))
+
+;;
 ;; arrays
 ;;
 

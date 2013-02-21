@@ -5,10 +5,10 @@
   (expect: 5)
 
   (INT FLOAT BAREWORD LEXVAR
-   SEMICOLON
-   COLON COMMA
-   PARENS_L PARENS_R
+   SEMICOLON COLON COMMA
+   PARENS_L  PARENS_R
    BRACKET_L BRACKET_R
+   BRACE_L   BRACE_R
    QMARK
    SPLICE_ARRAY SPLICE_HASH
    (left:  OP_L_OR OP_L_ERR)
@@ -62,7 +62,7 @@
 
   (named-value
         (identifier-lax COLON expression)
-            : (make-named-value $2 $1 $3)
+            : (make-named-value $2 (identifier->string $1) $3)
         (expression COLON expression)
             : (make-named-value $2 $1 $3))
 
@@ -95,6 +95,24 @@
             : (make-arguments $2)
         ()
             : (make-arguments '()))
+
+  (hash-item
+        (named-value)   : $1
+        (splice-hash)   : $1)
+
+  (hash-rest
+        (hash-item COMMA hash-rest)
+            : (cons $1 $3)
+        (hash-item)
+            : (cons $1 '())
+        (COMMA)
+            : '()
+        ()
+            : '())
+
+  (hash
+        (BRACE_L hash-rest BRACE_R)
+            : (make-hash $1 $2))
 
   (array-item
         (splice-array)  : $1
@@ -189,6 +207,8 @@
         (PARENS_L expression PARENS_R)
             : $2
         (array)
+            : $1
+        (hash)
             : $1
         (lexical-variable)
             : $1

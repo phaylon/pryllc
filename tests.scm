@@ -206,6 +206,16 @@
 (define (ast/splice-@ expr)
   (ast/splice <ast-splice-array> expr))
 
+(define (ast/hash . items)
+  (cb/object
+    <ast-hash>
+    (cb/slot
+      'items
+      (apply
+        cb/list
+        "hash elements"
+        items))))
+
 (define (ast/array . items)
   (cb/object
     <ast-array>
@@ -561,7 +571,7 @@
       (test #f
         (ast/lexvar "$foo")
         c1
-        (ast/named (ast/ident "baz") (ast/number 23))))
+        (ast/named (ast/string "baz") (ast/number 23))))
     (cb/ast
       "no flags, bareword method, multiple pos arguments"
       (text "$foo" op m1 "(23, 17, 28)")
@@ -577,9 +587,9 @@
       (test #f
         (ast/lexvar "$foo")
         c1
-        (ast/named (ast/ident "x") (ast/number 23))
-        (ast/named (ast/ident "y") (ast/number 17))
-        (ast/named (ast/ident "z") (ast/number 28))))
+        (ast/named (ast/string "x") (ast/number 23))
+        (ast/named (ast/string "y") (ast/number 17))
+        (ast/named (ast/string "z") (ast/number 28))))
     (cb/ast
       "no flags, bareword method, dynamically named argument"
       (text "$foo" op m1 "((23 + 17): 42, $bar: 17)")
@@ -600,8 +610,8 @@
         c1
         (ast/number 23)
         (ast/number 17)
-        (ast/named (ast/ident "x") (ast/number 42))
-        (ast/named (ast/ident "y") (ast/number 28))))
+        (ast/named (ast/string "x") (ast/number 42))
+        (ast/named (ast/string "y") (ast/number 28))))
     (cb/ast
       "maybe flag, bareword method, single argument"
       (text "$foo" op m1 "?(23)")
@@ -644,9 +654,9 @@
       (test #f
         (ast/lexvar "$foo")
         c1
-        (ast/named (ast/ident "x") (ast/number 23))
+        (ast/named (ast/string "x") (ast/number 23))
         (ast/splice-% (ast/lexvar "$baz"))
-        (ast/named (ast/ident "z") (ast/number 17))))))
+        (ast/named (ast/string "z") (ast/number 17))))))
 
 (define (g/ast/operators/method-ref)
   (let ((test (lambda (maybe inv met . args)
@@ -750,6 +760,54 @@
           (ast/lexvar "$bar")
           (ast/number 23))))))
 
+(define (g/ast/hashes)
+  (t/group
+    "hashes"
+    (cb/ast
+      "empty hash"
+      "{}"
+      (ast/hash))
+    (cb/ast
+      "single element"
+      "{ x: 23 }"
+      (ast/hash (ast/named (ast/string "x") (ast/number 23))))
+    (cb/ast
+      "multiple elements"
+      "{ x: 23, y: 17, z: 42 }"
+      (ast/hash
+        (ast/named (ast/string "x") (ast/number 23))
+        (ast/named (ast/string "y") (ast/number 17))
+        (ast/named (ast/string "z") (ast/number 42))))
+    (cb/ast
+      "trailing comma"
+      "{ x: 23, y: 17, z: 42, }"
+      (ast/hash
+        (ast/named (ast/string "x") (ast/number 23))
+        (ast/named (ast/string "y") (ast/number 17))
+        (ast/named (ast/string "z") (ast/number 42))))
+    (cb/ast
+      "nested"
+      "{ x: 23, y: { a: 3, b: 4 }, z: 17 }"
+      (ast/hash
+        (ast/named (ast/string "x") (ast/number 23))
+        (ast/named
+          (ast/string "y")
+          (ast/hash
+            (ast/named (ast/string "a") (ast/number 3))
+            (ast/named (ast/string "b") (ast/number 4))))
+        (ast/named (ast/string "z") (ast/number 17))))
+    (cb/ast
+      "spliced"
+      "{ x: 2, %$foo, %{ a: 3, b: 4 }, y: 5 }"
+      (ast/hash
+        (ast/named (ast/string "x") (ast/number 2))
+        (ast/splice-% (ast/lexvar "$foo"))
+        (ast/splice-%
+          (ast/hash
+            (ast/named (ast/string "a") (ast/number 3))
+            (ast/named (ast/string "b") (ast/number 4))))
+        (ast/named (ast/string "y") (ast/number 5))))))
+
 (define (g/ast/arrays)
   (t/group
     "arrays"
@@ -817,7 +875,8 @@
     g/ast/operators
     g/ast/variables
     g/ast/groupings
-    g/ast/arrays))
+    g/ast/arrays
+    g/ast/hashes))
 
 (g/ast)
 
