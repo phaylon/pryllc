@@ -17,7 +17,7 @@
    (left:  OP_EQUAL OP_COMPARE)
    (right: OP_H_NOT)
    (left:  OP_CONCAT)
-   (left:  OP_L_MATH)
+   (left:  OP_PLUS OP_MINUS)
    (left:  OP_H_MATH))
 
   (document
@@ -63,7 +63,9 @@
             : (make-unary-operator $1 $2 'prefix)
         (expression OP_H_MATH expression)
             : (make-binary-operator $2 $1 $3)
-        (expression OP_L_MATH expression)
+        (expression OP_MINUS expression)
+            : (make-binary-operator $2 $1 $3)
+        (expression OP_PLUS expression)
             : (make-binary-operator $2 $1 $3)
         (expression OP_CONCAT expression)
             : (make-binary-operator $2 $1 $3)
