@@ -471,8 +471,7 @@
     g/ast/operators/smart
     g/ast/operators/concat
     g/ast/operators/math
-    g/ast/operators/num-signs
-    g/ast/operators/inc-dec))
+    g/ast/operators/num-signs))
 
 (define (g/ast)
   (t/group

@@ -19,8 +19,7 @@
    (left:  OP_CONCAT)
    (left:  OP_PLUS OP_MINUS)
    (left:  OP_H_MATH)
-   (right: num-sign)
-   (left:  OP_INC_DEC))
+   (right: num-sign))
 
   (document
         (statements)
@@ -67,8 +66,6 @@
             : (make-unary-operator $1 $2 'prefix)
         (OP_PLUS expression (prec: num-sign))
             : (make-unary-operator $1 $2 'prefix)
-        (assignable OP_INC_DEC)
-            : (make-unary-operator $2 $1 'postfix)
         (expression OP_H_MATH expression)
             : (make-binary-operator $2 $1 $3)
         (expression OP_MINUS expression)
