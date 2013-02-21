@@ -273,6 +273,23 @@
       "$a ?? $b ?? $c !! $d !! $e"
       (ast/ternop ast/$a (ast/ternop ast/$b ast/$c ast/$d) ast/$e))))
 
+(define (g/ast/operators/num-signs)
+  (t/group "unary number signs"
+    (cb/ast
+      "simple"
+      "-23"
+      (ast/unop "-" (ast/number 23)))
+    (cb/ast
+      "multiple"
+      "-23 * +17 - -4"
+      (ast/binop
+        "-"
+        (ast/binop
+          "*"
+          (ast/unop "-" (ast/number 23))
+          (ast/unop "+" (ast/number 17)))
+        (ast/unop "-" (ast/number 4))))))
+
 (define (g/ast/operators/equality)
   (apply t/group
     "equality"
@@ -436,7 +453,8 @@
     g/ast/operators/compare/number
     g/ast/operators/smart
     g/ast/operators/concat
-    g/ast/operators/math))
+    g/ast/operators/math
+    g/ast/operators/num-signs))
 
 (define (g/ast)
   (t/group
