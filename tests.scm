@@ -290,6 +290,23 @@
           (ast/unop "+" (ast/number 17)))
         (ast/unop "-" (ast/number 4))))))
 
+(define (g/ast/operators/inc-dec)
+  (t/group "increment and decrement"
+    (cb/ast
+      "increment"
+      "$a++ + $b++"
+      (ast/binop
+        "+"
+        (ast/unop "++" ast/$a)
+        (ast/unop "++" ast/$b)))
+    (cb/ast
+      "increment"
+      "$a-- - $b--"
+      (ast/binop
+        "-"
+        (ast/unop "--" ast/$a)
+        (ast/unop "--" ast/$b)))))
+
 (define (g/ast/operators/equality)
   (apply t/group
     "equality"
@@ -454,7 +471,8 @@
     g/ast/operators/smart
     g/ast/operators/concat
     g/ast/operators/math
-    g/ast/operators/num-signs))
+    g/ast/operators/num-signs
+    g/ast/operators/inc-dec))
 
 (define (g/ast)
   (t/group

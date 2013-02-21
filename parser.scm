@@ -70,6 +70,7 @@
              ((value-is-any '("<=>" "~~"))      'OP_COMPARE)
              ((value-is "+")                    'OP_PLUS)
              ((value-is "-")                    'OP_MINUS)
+             ((value-is-any '("++" "--"))       'OP_INC_DEC)
              ((value-is-any '("*" "/"))         'OP_H_MATH)
              ((value-is-any op/assign)          'OP_ASSIGN_SC)
              ((value-is-any op/equality/number) 'OP_EQUAL)
