@@ -196,6 +196,12 @@
     (cb/slot 'name  name)
     (cb/slot 'value value)))
 
+(define (ast/slot-ref cont slot)
+  (cb/object
+    <ast-slot-ref>
+    (cb/slot 'container cont)
+    (cb/slot 'slot      slot)))
+
 (define (ast/splice class expr)
   (cb/object
     class
@@ -843,6 +849,35 @@
         (ast/splice-@ (ast/array (ast/number 3) (ast/number 4)))
         (ast/number 5)))))
 
+
+(define (g/ast/slots)
+  (t/group
+    "slots"
+    (cb/ast
+      "simple access"
+      "$foo[23]"
+      (ast/slot-ref (ast/lexvar "$foo") (ast/number 23)))
+    (cb/ast
+      "nested access"
+      "$foo[23][-5]"
+      (ast/slot-ref
+        (ast/slot-ref (ast/lexvar "$foo") (ast/number 23))
+        (ast/unop "-" (ast/number 5))))
+    (cb/ast
+      "assignment"
+      "$foo[23] = 17"
+      (ast/assign
+        (ast/slot-ref (ast/lexvar "$foo") (ast/number 23))
+        (ast/number 17)))
+    (cb/ast
+      "nested assignment"
+      "$foo[23][-1] = 17"
+      (ast/assign
+        (ast/slot-ref
+          (ast/slot-ref (ast/lexvar "$foo") (ast/number 23))
+          (ast/unop "-" (ast/number 1)))
+        (ast/number 17)))))
+
 (define (g/ast/operators)
   (t/group
     "operators"
@@ -876,7 +911,8 @@
     g/ast/variables
     g/ast/groupings
     g/ast/arrays
-    g/ast/hashes))
+    g/ast/hashes
+    g/ast/slots))
 
 (g/ast)
 

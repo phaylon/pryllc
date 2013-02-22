@@ -107,6 +107,16 @@
 ;; assignments
 ;;
 
+  (define assign-expand
+    '(("+="  "+")
+      ("-="  "-")
+      ("*="  "*")
+      ("/="  "/")
+      ("~="  "~")
+      ("//=" "//")
+      ("||=" "||")
+      ("&&=" "&&")))
+
   (define-class <ast-assign> ()
     ((location)
      (target     reader: target)
@@ -115,6 +125,23 @@
   (define-method (debug-dump (assign <ast-assign>))
     `(assign ,(debug-dump (target assign))
              ,(debug-dump (expression assign))))
+
+  (define (make-assign op target expression)
+    (make <ast-assign>
+      'location   (token-location op)
+      'target     target
+      'expression expression))
+
+  (define (make-assign/sc op target expression)
+    (make <ast-assign>
+      'location   (token-location op)
+      'target     target
+      'expression (make <ast-binary-operator>
+                    'location (token-location op)
+                    'operator (cadr (assoc (token-value op)
+                                          assign-expand))
+                    'left     target
+                    'right    expression)))
 
 ;;
 ;; equalities
@@ -204,6 +231,26 @@
       'location (token-location op)
       'name     name
       'value    value))
+
+;;
+;; slot ref
+;;
+
+  (define-class <ast-slot-ref> ()
+    ((location)
+     (container reader: container)
+     (slot      reader: slot)))
+
+  (define-method (debug-dump (sr <ast-slot-ref>))
+    `(slot
+      ,(debug-dump (container sr))
+      ,(debug-dump (slot sr))))
+
+  (define (make-slot-ref op container slot)
+    (make <ast-slot-ref>
+      'location  (token-location op)
+      'container container
+      'slot      slot))
 
 ;;
 ;; hashes
@@ -359,33 +406,6 @@
     (make <ast-variable-lexical>
       'location (token-location token)
       'value    (token-value token)))
-
-  (define (make-assign op target expression)
-    (make <ast-assign>
-      'location   (token-location op)
-      'target     target
-      'expression expression))
-
-  (define assign-expand
-    '(("+="  "+")
-      ("-="  "-")
-      ("*="  "*")
-      ("/="  "/")
-      ("~="  "~")
-      ("//=" "//")
-      ("||=" "||")
-      ("&&=" "&&")))
-
-  (define (make-assign/sc op target expression)
-    (make <ast-assign>
-      'location   (token-location op)
-      'target     target
-      'expression (make <ast-binary-operator>
-                    'location (token-location op)
-                    'operator (cadr (assoc (token-value op)
-                                          assign-expand))
-                    'left     target
-                    'right    expression)))
 
   (define (make-equality-operations op left right)
     (make <ast-equality-operation>

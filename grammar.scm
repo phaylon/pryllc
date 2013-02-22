@@ -24,7 +24,8 @@
    (left:  OP_PLUS OP_MINUS)
    (left:  OP_H_MATH)
    (left:  OP_METHOD_CALL OP_METHOD_REF)
-   (right: num-sign)
+   (left:  prec-slot)
+   (right: prec-num-sign)
    )
 
   (document
@@ -145,11 +146,17 @@
         (EMARK)     : #t
         ()          : #f)
 
+  (slot-ref
+        (expression BRACKET_L expression BRACKET_R)
+            : (make-slot-ref $2 $1 $3))
+
   (expression
         (atom)
             : $1
         (op-equal-binary)
             : $1
+        (expression BRACKET_L expression BRACKET_R)
+            : (make-slot-ref $2 $1 $3)
         (expression 
          OP_METHOD_REF
          method
@@ -173,9 +180,9 @@
             : (make-unary-operator $1 $2 'prefix)
         (OP_L_NOT expression)
             : (make-unary-operator $1 $2 'prefix)
-        (OP_MINUS expression (prec: num-sign))
+        (OP_MINUS expression (prec: prec-num-sign))
             : (make-unary-operator $1 $2 'prefix)
-        (OP_PLUS expression (prec: num-sign))
+        (OP_PLUS expression (prec: prec-num-sign))
             : (make-unary-operator $1 $2 'prefix)
         (expression OP_H_MATH expression)
             : (make-binary-operator $2 $1 $3)
@@ -201,6 +208,8 @@
             : (make-binary-operator $2 $1 $3))
 
   (assignable
+        (slot-ref)
+            : $1
         (lexical-variable)
             : $1)
 
