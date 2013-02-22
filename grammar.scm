@@ -23,8 +23,9 @@
    (left:  OP_CONCAT)
    (left:  OP_PLUS OP_MINUS)
    (left:  OP_H_MATH)
+   (left:  OP_METHOD_CALL OP_METHOD_REF)
    (right: num-sign)
-   (left:  OP_METHOD_CALL OP_METHOD_REF))
+   )
 
   (document
         (statements)
