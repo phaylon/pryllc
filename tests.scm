@@ -849,7 +849,6 @@
         (ast/splice-@ (ast/array (ast/number 3) (ast/number 4)))
         (ast/number 5)))))
 
-
 (define (g/ast/slots)
   (t/group
     "slots"
