@@ -222,6 +222,18 @@
         "hash elements"
         items))))
 
+(define (ast/func-call name . args)
+  (cb/object
+    <ast-function-call>
+    (cb/slot 'function-name (cb/is t/eq name))
+    (cb/slot 'arguments (apply ast/args args))))
+
+(define (ast/call function . args)
+  (cb/object
+    <ast-call>
+    (cb/slot 'function function)
+    (cb/slot 'arguments (apply ast/args args))))
+
 (define (ast/array . items)
   (cb/object
     <ast-array>
@@ -849,6 +861,35 @@
         (ast/splice-@ (ast/array (ast/number 3) (ast/number 4)))
         (ast/number 5)))))
 
+(define (g/ast/function-calls)
+  (t/group
+    "function calls"
+    (cb/ast
+      "simple static call without arguments"
+      "foo()"
+      (ast/func-call "foo"))
+    (cb/ast
+      "simple static call with arguments"
+      "foo(23, 17)"
+      (ast/func-call "foo" (ast/number 23) (ast/number 17)))
+    (cb/ast
+      "variable function call"
+      "$foo(23, 17)"
+      (ast/call (ast/lexvar "$foo") (ast/number 23) (ast/number 17)))
+    (cb/ast
+      "calling grouping result"
+      "($foo)($bar)"
+      (ast/call (ast/lexvar "$foo") (ast/lexvar "$bar")))
+    (cb/ast
+      "calling method call return value"
+      "$foo.bar(23)(17)"
+      (ast/call
+        (ast/method-call #f #f
+          (ast/lexvar "$foo")
+          (ast/string "bar")
+          (ast/number 23))
+        (ast/number 17)))))
+
 (define (g/ast/slots)
   (t/group
     "slots"
@@ -911,7 +952,8 @@
     g/ast/groupings
     g/ast/arrays
     g/ast/hashes
-    g/ast/slots))
+    g/ast/slots
+    g/ast/function-calls))
 
 (g/ast)
 

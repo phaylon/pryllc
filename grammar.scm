@@ -98,6 +98,10 @@
         ()
             : (make-arguments '()))
 
+  (arguments-req
+        (PARENS_L arguments-rest PARENS_R)
+            : (make-arguments $2))
+
   (hash-item
         (named-value)   : $1
         (splice-hash)   : $1)
@@ -157,7 +161,7 @@
             : $1
         (expression BRACKET_L expression BRACKET_R)
             : (make-slot-ref $2 $1 $3)
-        (expression 
+        (expression
          OP_METHOD_REF
          method
          opt-qmark
@@ -170,6 +174,10 @@
          opt-emark
          arguments)
             : (make-method-call $2 $1 $3 $4 $5 $6)
+        (BAREWORD PARENS_L arguments-rest PARENS_R)
+            : (make-function-call $1 (make-arguments $3))
+        (expression PARENS_L arguments-rest PARENS_R)
+            : (make-call $2 $1 (make-arguments $3))
         (expression OP_TERN_THEN expression OP_TERN_ELSE expression)
             : (make-ternary-operator $2 $1 $3 $5)
         (assignable OP_ASSIGN expression)

@@ -93,6 +93,46 @@
     (string->symbol (slot-value bw 'value)))
 
 ;;
+;; calls
+;;
+
+  (define-class <ast-call> ()
+    ((location)
+     (function  reader: function)
+     (arguments reader: arguments)))
+
+  (define-method (debug-dump (call <ast-call>))
+    `(call
+        ,(debug-dump (function call))
+        ,(debug-dump (arguments call))))
+
+  (define (make-call op func args)
+    (make <ast-call>
+      'location  (token-location op)
+      'function  func
+      'arguments args))
+
+;;
+;; function calls
+;;
+
+  (define-class <ast-function-call> ()
+    ((location)
+     (function-name reader: function-name)
+     (arguments     reader: arguments)))
+
+  (define-method (debug-dump (fc <ast-function-call>))
+    `(func-call
+      ,(function-name fc)
+      ,(debug-dump (arguments fc))))
+
+  (define (make-function-call name args)
+    (make <ast-function-call>
+      'location      (token-location name)
+      'function-name (token-value name)
+      'arguments     args))
+
+;;
 ;; lexical variables
 ;;
 
