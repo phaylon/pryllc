@@ -120,7 +120,7 @@
 (define (cb/slot slot test)
   (lambda (obj)
     (t/group
-      slot
+      (text slot " slot")
       (lambda ()
         (test (slot-value obj slot))))))
 
@@ -890,6 +890,54 @@
           (ast/number 23))
         (ast/number 17)))))
 
+(define (g/ast/strings)
+  (t/group
+    "strings"
+    (cb/ast
+      "single quoted, simple"
+      "'foo'"
+      (ast/string "foo"))
+    (cb/ast
+      "single quoted, escaped quote"
+      "'foo \\' bar'"
+      (ast/string "foo ' bar"))
+    (cb/ast
+      "single quoted, newline and tab"
+      "'foo \\n\\t bar'"
+      (ast/string "foo \\n\\t bar"))
+    (cb/ast
+      "single quoted, concat"
+      "'foo' ~ 'bar'"
+      (ast/binop "~"
+        (ast/string "foo")
+        (ast/string "bar")))
+    (cb/ast
+      "single quoted multiline"
+      "'foo\nbar'"
+      (ast/string "foo\nbar"))
+    (cb/ast
+      "double quoted, simple"
+      "\"foo\""
+      (ast/string "foo"))
+    (cb/ast
+      "double quoted, escaped quote"
+      "\"foo \\\" bar\""
+      (ast/string "foo \" bar"))
+    (cb/ast
+      "double quoted, newline and tab"
+      "\"foo \\n\\t bar\""
+      (ast/string "foo \n\t bar"))
+    (cb/ast
+      "double quoted, concat"
+      "\"foo\" ~ \"bar\""
+      (ast/binop "~"
+        (ast/string "foo")
+        (ast/string "bar")))
+    (cb/ast
+      "double quoted multiline"
+      "\"foo\nbar\""
+      (ast/string "foo\nbar"))))
+
 (define (g/ast/slots)
   (t/group
     "slots"
@@ -953,7 +1001,8 @@
     g/ast/arrays
     g/ast/hashes
     g/ast/slots
-    g/ast/function-calls))
+    g/ast/function-calls
+    g/ast/strings))
 
 (g/ast)
 

@@ -18,6 +18,10 @@
     '(+ ("+-*/=<>~|&?!@%")))
   (define lexvar
     `(: "$" ,bareword))
+  (define string-single
+    '(: #\' (*? any) (neg-look-behind #\\) #\'))
+  (define string-double
+    '(: #\" (*? any) (neg-look-behind #\\) #\"))
 
   (define (dbg title value)
     (map display (list title " " value))
@@ -28,6 +32,8 @@
     `((DISCARD          whitespace)
       (LEXVAR           ($ ,lexvar))
       (BAREWORD         ($ ,bareword))
+      (STRING_SINGLE    ($ ,string-single))
+      (STRING_DOUBLE    ($ ,string-double))
       (OP_ASSIGN_SC     ($ (or "//=" "||=" "&&=")))
       (OP_COMPARE       ($ "<=>"))
       (OP_METHOD_REF    ($ ".&"))

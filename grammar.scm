@@ -5,6 +5,7 @@
   (expect: 5)
 
   (INT FLOAT BAREWORD LEXVAR
+   STRING_SINGLE STRING_DOUBLE
    SEMICOLON COLON COMMA
    PARENS_L  PARENS_R
    BRACKET_L BRACKET_R
@@ -232,6 +233,10 @@
             : $1
         (BAREWORD)
             : (make-bareword $1)
+        (STRING_DOUBLE)
+            : (make-string-double $1)
+        (STRING_SINGLE)
+            : (make-string-single $1)
         (INT)
             : (make-number $1)
         (FLOAT)
