@@ -13,7 +13,7 @@
   (define digits '(+ (/ "09")))
   (define bareword
     '(: (+ (or (/ "az") "_"))
-        (* (or (/ "az") (/ "09") "_"))))
+        (* (or (/ "az") (/ "09") "_" "-"))))
   (define opword
     '(+ ("+-*/=<>~|&?!@%")))
   (define lexvar
