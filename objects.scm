@@ -170,32 +170,33 @@
             positional)
           named))))
 
+  (define (pryll:new class . args)
+    (pryll:call-method
+      class
+      "new"
+      (list)
+      (apply mkhash args)))
+
 ;;
 ;;  TESTING
 ;;
 
   (define test-class
-    (pryll:call-method
-      pryll:meta-class
-      "new"
-      (list)
-      (mkhash
-        (list "attributes"
-              (named->hash
-                (mkattr "label")))
-        (list "methods"
-              (named->hash
-                (mkmethod
-                  "label"
-                  (lambda (pos nam)
-                    (get-slot (car pos) "label"))))))))
+    (pryll:new pryll:meta-class
+               (list "attributes"
+                     (named->hash
+                       (mkattr "label")))
+               (list "methods"
+                     (named->hash
+                       (mkmethod
+                         "label"
+                         (lambda (pos nam)
+                           (get-slot (car pos) "label")))))))
 
   (define test-object
-    (pryll:call-method
-      test-class
-      "new"
-      (list)
-      (mkhash (list "label" "Foo"))))
+    (pryll:new
+      test-class 
+      (list "label" "Foo")))
 
   (dbg "Label: " (pryll:call-method test-object "label" (list) (mkhash)))
 )
