@@ -126,7 +126,6 @@
                 (func obj (cddr pos) nam)))))
         )))
 
-
   (define (pryll:call-method object name pos_args named_args)
     (dbg "method call: " name)
     (let* ((meta (force (object-meta object)))
@@ -135,27 +134,27 @@
            (code (get-slot method "body")))
       (code object pos_args named_args)))
 
-  (define (old-pryll:call-method obj met pos nam)
-    (dbg "method call: " met)
-    (let* ((meta (force (object-meta obj))))
-      (pryll:call-method
-        meta
-        "execute-method"
-        (append
-          (list met obj)
-          pos)
-        nam)))
-
+;;
+;;  TESTING
+;;
 
   (define test-class
-    (mkclass
-      (named->hash
-        (mkattr "label"))
-      (named->hash
-        (mkmethod
-          "label"
-          (lambda (self pos nam)
-            (get-slot self "label"))))))
+    (pryll:call-method
+      pryll:meta-class
+      "new"
+      (list)
+      (mkhash
+        (list
+          "attributes"
+          (named->hash
+            (mkattr "label")))
+        (list
+          "methods"
+          (named->hash
+            (mkmethod
+              "label"
+              (lambda (self pos nam)
+                (get-slot self "label"))))))))
 
   (define test-object
     (pryll:call-method
