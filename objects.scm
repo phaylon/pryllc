@@ -92,8 +92,7 @@
   (set! pryll:meta-method
     (mkclass
       (named->hash
-        (mkattr "name")
-        (mkattr "body"))
+        (mkattr "name"))
       (named->hash
         (mkmethod
           "execute"
