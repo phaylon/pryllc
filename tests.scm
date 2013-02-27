@@ -1,4 +1,4 @@
-(require-extension coops srfi-1 srfi-13)
+(require-extension srfi-1 srfi-13)
 
 (load "lib/ast.scm")
 (load "lib/parser.scm")
