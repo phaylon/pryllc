@@ -11,8 +11,6 @@
 (define source
   (list-ref (argv) (- (length (argv)) 1)))
 
-;(define source (cadddr (ar))
-
 (define ast (source->ast "command line" source))
 (define (say . ls) (map display ls) (newline))
 
