@@ -1,128 +1,14 @@
 (require-extension coops srfi-1 srfi-13)
 
-(load "ast")
-(load "parser.scm")
-(import parsing)
-(import ast)
+(load "lib/ast.scm")
+(load "lib/parser.scm")
+(load "lib/test.scm")
+(load "lib/util.scm")
+(import pryll/parsing)
+(import pryll/ast)
+(import pryll/test)
+(import pryll/util)
 (import chicken scheme)
-
-(define t/level 0)
-(define t/fail-cnt 0)
-(define t/pass-cnt 0)
-
-(define (t/eq a b) (equal? (->string a) (->string b)))
-
-(define (text . args) (string-concatenate (map ->string args)))
-
-(define (t/class class)
-  (string-concatenate
-    (list
-      "is a "
-      (->string (class-name class)))))
-
-(define (t/done)
-  (t/diag "---")
-  (t/diag "pass: " t/pass-cnt)
-  (if (> t/fail-cnt 0)
-    (t/diag "fail: " t/fail-cnt)
-    #f))
-
-(define (t/indent)
-  (string-concatenate (append '("") (make-list t/level "  "))))
-
-(define t/next-index
-  (let ((i 0))
-    (lambda ()
-      (let ((n (+ i 1)))
-        (set! i n)
-        i))))
-
-(define (t/pass title)
-  (set! t/pass-cnt (+ t/pass-cnt 1))
-  (map display (list (t/indent) "ok " (t/next-index) " - " title))
-  (newline)
-  #t)
-
-(define (t/fail title)
-  (set! t/fail-cnt (+ t/fail-cnt 1))
-  (map display (list (t/indent) "not ok " (t/next-index) " - " title))
-  (newline)
-  (error "test failed")
-  #f)
-
-(define (t/ok value title)
-  (if value
-    (t/pass title)
-    (t/fail title)))
-
-(define (t/diag . args)
-  (map display `(,(t/indent) "# " ,@args))
-  (newline)
-  #f)
-
-(define (t/true-list ls)
-  (if (> (length ls) 0)
-    (= 0 (length (filter (lambda (n) (not n)) ls)))
-    #t))
-
-(define (t/group title . tests)
-  (t/diag title)
-  (set! t/level (+ t/level 1))
-  (let ((r (t/true-list (map (lambda (f) (f)) tests))))
-    (set! t/level (- t/level 1))
-    (t/ok r title)))
-
-(define (cb/group title . tests)
-  (lambda (value)
-    (t/group
-      title
-      (lambda ()
-        (map (lambda (t) (t value)) tests)))))
-
-(define (is-object obj class . then)
-  (or (and (t/ok (subclass? (class-of obj) class) (t/class class))
-           (t/true-list (map (lambda (t) (t obj)) then)))
-      (t/diag "received: " obj)))
-
-(define (is-equal op value expected title)
-  (if (op value expected)
-    (t/pass title)
-    (begin
-      (t/diag "expected: " expected)
-      (t/diag "received: " value)
-      (t/fail title)
-      #f)))
-
-(define (test-all vs ts)
-  (and (is-equal equal? (length vs) (length ts) "item count")
-       (t/true-list 
-         (map (lambda (pair) ((cadr pair) (car pair)))
-              (zip vs ts)))))
-
-(define (cb/is op expected)
-  (lambda (value)
-    (is-equal op value expected "value")))
-
-(define (cb/list title . item-tests)
-  (lambda (value)
-    (t/group title
-      (lambda ()
-        (if (list? value)
-          (begin
-            (t/pass "is a list")
-            (test-all value item-tests))
-          (t/fail "is a list"))))))
-          
-(define (cb/object class . then)
-  (lambda (value)
-    (apply is-object value class then)))
-
-(define (cb/slot slot test)
-  (lambda (obj)
-    (t/group
-      (text slot " slot")
-      (lambda ()
-        (test (slot-value obj slot))))))
 
 (define (cb/ast title source . statement-tests)
   (lambda ()
@@ -132,7 +18,7 @@
         (lambda ()
           (is-object
             ast
-            <ast-document>
+            <pryll:ast-document>
             (cb/slot
               'statements
               (apply
@@ -140,65 +26,65 @@
                 "statement tests"
                 (map (lambda (test)
                        (cb/object
-                         <ast-statement>
+                         <pryll:ast-statement>
                          (cb/slot
                            'expression
                            test)))
                      statement-tests)))))))))
 
 (define (ast/number num)
-  (cb/object <ast-number> (cb/slot 'value (cb/is t/eq num))))
+  (cb/object <pryll:ast-number> (cb/slot 'value (cb/is t/eq num))))
 
 (define (ast/binop op left right)
   (cb/object
-    <ast-binary-operator>
+    <pryll:ast-binary-operator>
     (cb/slot 'operator (cb/is t/eq op))
     (cb/slot 'left     left)
     (cb/slot 'right    right)))
 
 (define (ast/unop op operand)
   (cb/object
-    <ast-unary-operator>
+    <pryll:ast-unary-operator>
     (cb/slot 'operator (cb/is t/eq op))
     (cb/slot 'operand  operand)))
 
 (define (ast/assign target source)
   (cb/object
-    <ast-assign>
+    <pryll:ast-assign>
     (cb/slot 'target     target)
     (cb/slot 'expression source)))
 
 (define (ast/lexvar name)
   (cb/object
-    <ast-variable-lexical>
+    <pryll:ast-variable-lexical>
     (cb/slot 'value (cb/is t/eq name))))
 
 (define (ast/ternop condit conseq alter)
   (cb/object
-    <ast-ternary-operator>
+    <pryll:ast-ternary-operator>
     (cb/slot 'condition condit)
     (cb/slot 'consequence conseq)
     (cb/slot 'alternative alter)))
 
 (define (ast/string value)
   (cb/object
-    <ast-string>
+    <pryll:ast-string>
     (cb/slot 'value (cb/is t/eq value))))
 
 (define (ast/ident value)
   (cb/object
-    <ast-identifier>
+    <pryll:ast-identifier>
     (cb/slot 'value (cb/is t/eq value))))
 
 (define (ast/named name value)
   (cb/object
-    <ast-named-value>
+    <pryll:ast-named-value>
     (cb/slot 'name  name)
     (cb/slot 'value value)))
 
 (define (ast/slot-ref cont slot)
   (cb/object
-    <ast-slot-ref>
+    <pryll:ast-slot-ref>
     (cb/slot 'container cont)
     (cb/slot 'slot      slot)))
 
@@ -208,13 +94,13 @@
     (cb/slot 'expression expr)))
 
 (define (ast/splice-% expr)
-  (ast/splice <ast-splice-hash> expr))
+  (ast/splice <pryll:ast-splice-hash> expr))
 (define (ast/splice-@ expr)
-  (ast/splice <ast-splice-array> expr))
+  (ast/splice <pryll:ast-splice-array> expr))
 
 (define (ast/hash . items)
   (cb/object
-    <ast-hash>
+    <pryll:ast-hash>
     (cb/slot
       'items
       (apply
@@ -224,19 +110,19 @@
 
 (define (ast/func-call name . args)
   (cb/object
-    <ast-function-call>
+    <pryll:ast-function-call>
     (cb/slot 'function-name (cb/is t/eq name))
     (cb/slot 'arguments (apply ast/args args))))
 
 (define (ast/call function . args)
   (cb/object
-    <ast-call>
+    <pryll:ast-call>
     (cb/slot 'function function)
     (cb/slot 'arguments (apply ast/args args))))
 
 (define (ast/array . items)
   (cb/object
-    <ast-array>
+    <pryll:ast-array>
     (cb/slot
       'items
       (apply
@@ -246,7 +132,7 @@
 
 (define (ast/args . items)
   (cb/object
-    <ast-arguments>
+    <pryll:ast-arguments>
     (cb/slot
       'items
       (apply
@@ -271,24 +157,24 @@
 
 (define (ast/method-ref maybe inv met . args)
   (apply ast/method-op
-    <ast-method-ref>
-    `((is-maybe? ,maybe))
+    <pryll:ast-method-ref>
+    `((is-maybe ,maybe))
     inv
     met
     args))
 
 (define (ast/method-call maybe chained inv met . args)
   (apply ast/method-op
-    <ast-method-call>
-    `((is-maybe? ,maybe)
-      (is-chained? ,chained))
+    <pryll:ast-method-call>
+    `((is-maybe ,maybe)
+      (is-chained ,chained))
     inv
     met
     args))
 
 (define (ast/eq . items)
   (cb/object
-    <ast-equality-operation>
+    <pryll:ast-equality-operation>
     (cb/slot
       'items
       (apply

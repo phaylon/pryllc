@@ -1,12 +1,19 @@
 
-(load "ast")
-(load "parser.scm")
-(import parsing)
-(import ast)
+(load "lib/ast.scm")
+(load "lib/parser.scm")
+(load "lib/objects.scm")
+(load "lib/util.scm")
+(import pryll/objects)
+(import pryll/parsing)
+(import pryll/ast)
+(import pryll/util)
 
-(define source (cadddr (argv)))
+(define source
+  (list-ref (argv) (- (length (argv)) 1)))
+
+;(define source (cadddr (ar))
 
 (define ast (source->ast "command line" source))
 (define (say . ls) (map display ls) (newline))
 
-(pretty-print (debug-dump ast))
+(pretty-print (pryll:call-method ast "debug-dump" (list) (mkhash)))

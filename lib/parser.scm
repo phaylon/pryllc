@@ -1,14 +1,15 @@
-(load "ast")
+(load "lib/ast.scm")
 
-(module parsing (source->ast)
+(module pryll/parsing
+  (source->ast)
   (import scheme)
   (import srfi-1 srfi-13)
   (import chicken)
   (require-extension srfi-1 srfi-13 srfi-69 lalr-driver irregex)
  
-  (import ast)
+  (import pryll/ast)
 
-  (include "grammar.yy.scm")
+  (include "lib/grammar.yy.scm")
 
   (define digits '(+ (/ "09")))
   (define bareword
