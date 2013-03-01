@@ -637,6 +637,9 @@
                     (pryll:attribute/item "location")
                     (pryll:attribute/item "value"))
       methods: (named->hash
+                 (compile-method
+                   (lambda (self ctx)
+                     (pryll:get-slot self "value")))
                  (dump-method
                    (lambda (self)
                      `(str ,(pryll:get-slot self "value")))))))

@@ -25,6 +25,13 @@
 (define (t/pred title pred value)
   (t/ok (pred value) title))
 
+(define (cb/string str)
+  (cb/group
+    "string identity"
+    (lambda (value)
+      (and (t/pred "is a string" string? value)
+           (is-equal string=? value str "string value")))))
+
 (define (cb/number num)
   (cb/group
     "number identity"
@@ -43,6 +50,12 @@
   (cb/run "float"
           "23.5"
           (cb/number 23.5)))
+
+(t/group
+  "strings"
+  (cb/run "simple string"
+          "'foo bar'"
+          (cb/string "foo bar")))
 
 (t/group
   "documents"
