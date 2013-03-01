@@ -80,6 +80,15 @@
       (lambda (pos nam)
         (proc (car pos)))))
 
+  (define (compile-method proc)
+    (pryll:mkmethod
+      "compile"
+      (lambda (pos nam)
+        (proc (car pos) (cadr pos)))))
+
+  (define (compile ctx item)
+    (pryll:call-method item "compile" (list ctx) (mkhash)))
+
   (define <pryll:ast-number>
     (pryll:make
       <pryll:meta-class>
@@ -87,6 +96,9 @@
                     (pryll:attribute/item "location")
                     (pryll:attribute/item "value"))
       methods: (named->hash
+                 (compile-method
+                   (lambda (self ctx)
+                     (string->number (pryll:get-slot self "value"))))
                  (dump-method
                    (lambda (self)
                      `(num ,(pryll:get-slot self "value")))))))
@@ -106,6 +118,9 @@
       attributes: (named->hash
                     (pryll:attribute/item "expression"))
       methods: (named->hash
+                 (compile-method
+                   (lambda (self ctx)
+                     (compile ctx (pryll:get-slot self "expression"))))
                  (dump-method
                    (lambda (self)
                      `(stmt ,(dump-slot self "expression")))))))
@@ -124,6 +139,13 @@
       attributes: (named->hash
                     (pryll:attribute/item "statements"))
       methods: (named->hash
+                 (compile-method
+                   (lambda (self ctx)
+                     `(begin
+                        ,@(map
+                            (lambda (stmt)
+                              (compile ctx stmt))
+                            (pryll:get-slot self "statements")))))
                  (dump-method
                    (lambda (self)
                      `(doc ,(map dump
