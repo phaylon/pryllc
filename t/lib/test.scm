@@ -1,32 +1,9 @@
 (load "lib/ast.scm")
 (load "lib/parser.scm")
 (load "lib/util.scm")
-(load "lib/objects.scm")
+(load "lib/mop.scm")
 
-(module pryll/test
-  (t/eq
-   t/class
-   t/done
-   t/indent
-   t/pass
-   t/fail
-   t/ok
-   t/diag
-   t/true-list
-   t/group
-   cb/group
-   is-object
-   is-equal
-   test-all
-   cb/is
-   cb/list
-   cb/object
-   cb/slot)
   (import chicken scheme)
-  (import pryll/objects)
-  (import pryll/util)
-  (import pryll/parsing)
-  (import pryll/ast)
   (require-extension srfi-1 srfi-13 srfi-69 data-structures)
 
   (define t/level 0)
@@ -144,6 +121,5 @@
       (t/group
         (text slot " slot")
         (lambda ()
-          (test (pryll:get-slot obj (symbol->string slot)))))))
+          (test (pryll:object-data obj (symbol->string slot)))))))
 
-)

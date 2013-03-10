@@ -1,16 +1,7 @@
 (require-extension srfi-1 srfi-13)
 
-(load "lib/ast.scm")
-(load "lib/parser.scm")
-(load "lib/test.scm")
-(load "lib/util.scm")
-(load "lib/compiler.scm")
-
-(import pryll/parsing)
-(import pryll/ast)
-(import pryll/test)
-(import pryll/util)
-(import pryll/compiler)
+(load "dev/libs.scm")
+(load "t/lib/test.scm")
 (import chicken scheme)
 
 (define (cb/run title source result-test)

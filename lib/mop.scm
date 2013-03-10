@@ -2,7 +2,7 @@
 (declare (unit mop))
 
   (import chicken scheme)
-  (require-extension srfi-69 srfi-1 srfi-13 data-structures)
+  (require-extension srfi-69 srfi-1 srfi-13 data-structures lolevel)
 
   (define-record object meta data internal)
 
@@ -32,6 +32,9 @@
                (if (v-true? extends)
                  (list superclass: extends)
                  (list))))))
+
+  (define (pryll:isa? obj class)
+    (pryll:invoke (pryll:meta-for obj) "is-a" (list class)))
 
   (define (pryll:make class . args)
     (pryll:invoke
@@ -489,6 +492,19 @@
                 "new"
                 (lambda (pos nam)
                   (construct-instance (car pos) (cdr pos) nam)))
+            is-a:
+              ;; TODO cache inheritance in objects
+              (method
+                "is-a"
+                (unwrap-pos-args
+                  (lambda (self class)
+                    (if (equal? (object->pointer self)
+                                (object->pointer class))
+                      #t
+                      (let ((super (pryll:invoke self "superclass")))
+                        (if (void? super)
+                          #f
+                          (pryll:invoke super "is-a" (list class))))))))
             finalize:
               (method
                 "finalize"
