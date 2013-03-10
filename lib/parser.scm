@@ -1,15 +1,12 @@
-(load "lib/ast.scm")
+(declare (unit parser))
+(declare (uses ast))
 
-(module pryll/parsing
-  (source->ast)
   (import scheme)
   (import srfi-1 srfi-13)
   (import chicken)
   (require-extension srfi-1 srfi-13 srfi-69 lalr-driver irregex)
- 
-  (import pryll/ast)
 
-  (include "lib/grammar.yy.scm")
+  (include "lib/grammar.scm.yy")
 
   (define digits '(+ (/ "09")))
   (define bareword
@@ -23,11 +20,6 @@
     '(: #\' (*? any) (neg-look-behind #\\) #\'))
   (define string-double
     '(: #\" (*? any) (neg-look-behind #\\) #\"))
-
-  (define (dbg title value)
-    (map display (list title " " value))
-    (newline)
-    value)
 
   (define token-patterns
     `((DISCARD          whitespace)
@@ -135,7 +127,7 @@
                   (next-token token-patterns)
                   (let ((location (get-location)))
                     (make-lexical-token
-                      (dbg "TYPE" (clear-token-type type str))
+                      (clear-token-type type str)
 ;                      (clear-token-type type str)
                       (pryll-location->source-location location)
                       `(,str ,location)))))
@@ -152,4 +144,4 @@
       (source->token-iterator name body)
       (lambda args
         (say args)
-        (error "An error occured")))))
+        (error "An error occured"))))

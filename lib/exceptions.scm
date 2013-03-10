@@ -1,7 +1,4 @@
-
-(module
-  pryll/exceptions
-  (pryll:throw)
+(declare (unit exceptions))
 
   (import chicken scheme)
   (require-extension srfi-1 srfi-13 data-structures)
@@ -14,5 +11,3 @@
   (define (pryll:throw ex)
     ((current-handler) ex))
 
-  (pryll:throw 23)
-)

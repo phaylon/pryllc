@@ -1,14 +1,12 @@
-(include "lib/util.scm")
-(include "lib/mop.scm")
-(include "lib/ast.scm")
-(include "lib/parser.scm")
-(include "lib/compiler.scm")
 
-(import pryll/mop)
-(import pryll/parsing)
-(import pryll/ast)
-(import pryll/util)
-(import pryll/compiler)
+(declare (uses util))
+(declare (uses mop))
+(declare (uses ast))
+(declare (uses parser))
+(declare (uses compiler))
+
+(require-extension extras)
+(import chicken scheme)
 
 (define source
   (list-ref (argv) (- (length (argv)) 1)))
@@ -24,5 +22,5 @@
 
 (define result (eval code (scheme-report-environment 5)))
 
-(say "RESULT")
+(say ";; RESULT")
 (pretty-print result)

@@ -1,7 +1,7 @@
 (require-extension lalr)
 
 (lalr-parser
-  (output: parser "grammar.yy.scm")
+  (output: parser "grammar.scm.yy")
   (expect: 5)
 
   (INT FLOAT BAREWORD LEXVAR

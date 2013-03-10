@@ -1,20 +1,6 @@
 (declare (uses util))
 (declare (unit mop))
 
-(module pryll/mop
-  (make
-   mop/class
-   mop/attribute
-   mop/method
-   mop/init
-   pryll:invoke
-   pryll:make
-   pryll:object-data
-   <pryll:meta-class>
-   <pryll:meta-attribute>
-   <pryll:meta-method>)
-
-  (import pryll/util)
   (import chicken scheme)
   (require-extension srfi-69 srfi-1 srfi-13 data-structures)
 
@@ -584,4 +570,4 @@
               <pryll:meta-attribute>
               <pryll:meta-method>))
 
-)
+

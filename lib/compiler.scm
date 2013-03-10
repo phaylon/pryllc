@@ -1,12 +1,8 @@
-(load "lib/mop.scm")
-(load "lib/util.scm")
-
-(module pryll/compiler
-  (ast->code)
+(declare (unit compiler))
+(declare (uses mop))
+(declare (uses util))
 
   (import chicken scheme)
-  (import pryll/mop)
-  (import pryll/util)
   (require-extension srfi-1 srfi-13 srfi-69)
 
   (define <context>
@@ -31,4 +27,3 @@
         ast
         "compile"
         (list ctx))))
-)

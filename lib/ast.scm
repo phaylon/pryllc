@@ -1,62 +1,8 @@
-;(load "lib/objects.scm")
-(load "lib/mop.scm")
-(load "lib/util.scm")
-
-(module pryll/ast
-  (<pryll:ast-number>
-   <pryll:ast-statement>
-   <pryll:ast-document>
-   <pryll:ast-binary-operator>
-   <pryll:ast-unary-operator>
-   <pryll:ast-ternary-operator>
-   <pryll:ast-bareword>
-   <pryll:ast-call>
-   <pryll:ast-function-call>
-   <pryll:ast-variable-lexical>
-   <pryll:ast-assign>
-   <pryll:ast-equality-operation>
-   <pryll:ast-method-ref>
-   <pryll:ast-method-call>
-   <pryll:ast-named-value>
-   <pryll:ast-slot-ref>
-   <pryll:ast-hash>
-   <pryll:ast-array>
-   <pryll:ast-arguments>
-   <pryll:ast-identifier>
-   <pryll:ast-string>
-   <pryll:ast-splice-hash>
-   <pryll:ast-splice-array>
-   make-number
-   make-statement
-   make-document
-   make-binary-operator
-   make-unary-operator
-   make-ternary-operator
-   make-bareword
-   make-call
-   make-function-call
-   make-lexical-variable
-   make-assign
-   make-assign/sc
-   make-equality-operations
-   combine-equality-operations
-   make-method-ref
-   make-method-call
-   make-named-value
-   make-slot-ref
-   make-hash
-   make-array
-   make-arguments
-   make-identifier
-   make-string-value
-   make-string-single
-   make-string-double
-   identifier->string
-   make-hash-splice
-   make-array-splice)
+(declare (unit ast))
+(declare (uses util))
+(declare (uses mop))
 
   (import chicken scheme)
-  (import pryll/mop pryll/util)
   (require-extension irregex)
 
   (define (token-value token) (car token))
@@ -754,4 +700,4 @@
                 location:   (token-location token)
                 expression: expr))
 
-)
+

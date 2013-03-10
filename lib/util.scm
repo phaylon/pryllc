@@ -1,23 +1,8 @@
 (declare (unit util))
 
-(module pryll/util
-  (dbg
-   dbg/pipe
-   mkhash
-   phash
-   list->alist
-   text
-   void?
-   not-void?
-   v-false?
-   v-true?
-   phash-slot
-   phash-has
-   phash-values
-  )
   (import chicken scheme)
   (require-extension srfi-1 srfi-13 srfi-69 data-structures)
-  (define DEBUG #t)
+  (define DEBUG #f)
 
 ;  (define-record undef)
 ;  (define pryll:undef (make-undef))
@@ -108,4 +93,3 @@
   (define (phash . ls)
     (apply mkhash (list->alist ls)))
 
-)
