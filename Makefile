@@ -8,8 +8,14 @@ clean:
 	rm $(OBJS)
 	rm $(PROGRAM)
 
+test: force
+	csi -s t/lexing.t.scm
+	csi -s t/compilation.t.scm
+
 $(PROGRAM): $(OBJS)
 	csc $(OBJS) -o $(PROGRAM)
 
 %.o: %.scm
 	csc -c $<
+
+force: ;
