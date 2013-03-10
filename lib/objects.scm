@@ -21,9 +21,6 @@
   (require-extension srfi-1 srfi-13 srfi-69)
 
   (define-record object meta data internal)
-  (define-record undef)
-
-  (define pryll:undef (make-undef))
 
   (define ... #f)
 
@@ -56,9 +53,9 @@
 
   (define (pryll:get-slot obj slot)
     (dbg "hash-table: " (hash-table->alist (object-data obj)))
-    (car (hash-table-ref
+     (hash-table-ref
            (object-data obj)
-           slot)))
+           slot))
 
   (define (pryll:set-slot! obj slot value)
     (hash-table-set!
@@ -135,6 +132,10 @@
       associated-class: pryll:undef
       is-finalized:     #t))
 
+  (define (pryll:invoke inv method #!key pos nam)
+    (let* ((meta (pryll:meta inv)))
+      #f))
+
   (dbg "create meta attribute")
   (set! <pryll:meta-attribute>
     (mkclass
@@ -186,7 +187,7 @@
       (named->hash
         (pryll:attribute/item "roles")
         (pryll:attribute/item "name")
-        (pryll:attribute/item "superclasses")
+        (pryll:attribute/item "superclass")
         (pryll:attribute/item "attributes")
         (pryll:attribute/item "methods"))
       (named->hash
@@ -197,11 +198,20 @@
               (car pos)
               nam)))
         (pryll:mkmethod
+          "get-method"
+          (lambda (pos nam)
+            (let* ((self (car pos))
+                   (name (cadr pos)))
+               (hash-table-ref
+                     (pryll:get-slot self "methods") name))))
+        (pryll:mkmethod
           "has-method"
           (lambda (pos nam)
             (let* ((self (car pos))
                    (name (cadr pos)))
-              ...)))
+              (hash-table-exists?
+                (pryll:get-slot self "methods")
+                name))))
         (pryll:mkmethod
           "add-method"
           (lambda (pos nam)
@@ -211,9 +221,31 @@
         (pryll:mkmethod
           "find-method"
           (lambda (pos nam)
-            (car (hash-table-ref
-                   (pryll:get-slot (car pos) "methods")
-                   (cadr pos)))))
+            (let ((self (car pos))
+                  (name (cadr pos)))
+              (if (pryll:true?
+                    (pryll:call-method
+                      self
+                      "has-method"
+                      (list name)
+                      (mkhash)))
+                (pryll:call-method
+                  self
+                  "get-method"
+                  (list name)
+                  (mkhash))
+                (let ((super (pryll:call-method
+                               self
+                               "superclass"
+                               (list)
+                               (mkhash))))
+                  (if (pryll:true? super)
+                    (pryll:call-method
+                      super
+                      "find-method"
+                      (list name)
+                      (mkhash))
+                    pryll:undef))))))
         (pryll:mkmethod
           "execute-method"
           (lambda (pos nam)
@@ -222,7 +254,7 @@
                    (obj (caddr pos))
                    (restpos (cdddr pos)))
               (let* ((methods (pryll:get-slot self "methods"))
-                     (method (car (hash-table-ref methods met)))
+                     (method  (hash-table-ref methods met))
                      (func (pryll:get-internal method)))
                 (func (append (list obj) restpos) nam)))))
         )))
@@ -234,7 +266,7 @@
         (pryll:mkmethod
           "get"
           (lambda (pos nam)
-            (car (hash-table-ref/default
+            (hash-table-ref/default
                    (object-internal (car pos))
                    (cadr pos)
                    (pryll:undef)))))

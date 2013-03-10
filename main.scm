@@ -1,10 +1,10 @@
-(load "lib/ast.scm")
-(load "lib/parser.scm")
-(load "lib/objects.scm")
-(load "lib/util.scm")
-(load "lib/compiler.scm")
+(include "lib/util.scm")
+(include "lib/mop.scm")
+(include "lib/ast.scm")
+(include "lib/parser.scm")
+(include "lib/compiler.scm")
 
-(import pryll/objects)
+(import pryll/mop)
 (import pryll/parsing)
 (import pryll/ast)
 (import pryll/util)
@@ -16,7 +16,7 @@
 (define ast (source->ast "command line" source))
 (define (say . ls) (map display ls) (newline))
 
-(pretty-print (pryll:call-method ast "debug-dump" (list) (mkhash)))
+(pretty-print (pryll:invoke ast "debug-dump"))
 
 (define code (ast->code ast))
 

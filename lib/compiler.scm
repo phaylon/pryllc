@@ -1,29 +1,34 @@
-(load "lib/objects.scm")
+(load "lib/mop.scm")
 (load "lib/util.scm")
 
 (module pryll/compiler
   (ast->code)
 
   (import chicken scheme)
-  (import pryll/objects)
+  (import pryll/mop)
   (import pryll/util)
   (require-extension srfi-1 srfi-13 srfi-69)
 
   (define <context>
-    (pryll:make
-      <pryll:meta-class>
-      attributes: (named->hash
-                    (pryll:attribute/item "parent")
-                    (pryll:attribute/item "variables"))
-      methods: (named->hash)))
+    (mop/init
+      (mop/class name: "Core::AST::Compiler::Context")
+      (lambda (call)
+        (call add-attributes:
+              (mop/attribute
+                name:       "parent"
+                reader:     "parent"
+                init-arg:   "parent")
+              (mop/attribute
+                name:       "variables"
+                default:    (lambda args (mkhash))))
+        (call finalize:))))
 
   (define (ast->code ast)
     (let ((ctx (pryll:make <context>
-                           parent:  #f
+                           parent:    #f
                            variables: (mkhash))))
-      (pryll:call-method
+      (pryll:invoke
         ast
         "compile"
-        (list ctx)
-        (mkhash))))
+        (list ctx))))
 )
