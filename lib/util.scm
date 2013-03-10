@@ -1,8 +1,9 @@
 (declare (unit util))
+(declare (hide DEBUG))
 
 (import chicken scheme)
 (require-extension srfi-1 srfi-13 srfi-69 data-structures)
-(define DEBUG #f)
+(define-constant DEBUG #f)
 
 (define (v-true? value)
   (and value (not (void? value))))

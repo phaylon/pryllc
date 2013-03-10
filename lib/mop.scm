@@ -6,6 +6,12 @@
 
 (define-record object meta data internal)
 
+(declare (hide object?
+               make-object
+               object-meta
+               object-data
+               object-internal))
+
 (define (mop/init object proc)
   (proc (lambda (method . args)
           (pryll:invoke object (->string method) args)))
@@ -92,11 +98,11 @@
 (define <pryll:meta-attribute>)
 (define <pryll:meta-method>)
 
-(define (attr/item name . rest)
+(define-inline (attr/item name . rest)
   (make (delay <pryll:meta-attribute>)
         (apply phash name: name rest)))
 
-(define (attr/ro name . rest)
+(define-inline (attr/ro name . rest)
   (make (delay <pryll:meta-attribute>)
         (apply
           phash name:       name
@@ -104,7 +110,7 @@
                 init-arg:   name
                 rest)))
 
-(define (method/predicate method slot)
+(define-inline (method/predicate method slot)
   (make (delay <pryll:meta-method>)
         (phash name: method
                code: (unwrap-pos-args
@@ -112,14 +118,14 @@
                          (not-void?
                                 (pryll:object-data self slot)))))))
 
-(define (method/reader method slot)
+(define-inline (method/reader method slot)
   (make (delay <pryll:meta-method>)
         (phash name: method
                code: (unwrap-pos-args
                        (lambda (self)
                          (pryll:object-data self slot))))))
 
-(define (method/hash-getter method slot)
+(define-inline (method/hash-getter method slot)
   (make (delay <pryll:meta-method>)
         (phash name: method
                code: (unwrap-pos-args
@@ -127,7 +133,7 @@
                         (phash-slot (pryll:object-data self slot)
                                     key))))))
 
-(define (method/hash-predicate method slot)
+(define-inline (method/hash-predicate method slot)
   (make (delay <pryll:meta-method>)
         (phash name: method
                code: (unwrap-pos-args
@@ -135,14 +141,14 @@
                          (phash-has (pryll:object-data self slot)
                                     key))))))
 
-(define (unique-named ls)
+(define-inline (unique-named ls)
   (delete-duplicates
     ls
     (lambda (a b)
       (string=? (pryll:invoke a "name")
                 (pryll:invoke b "name")))))
 
-(define (method/hash-values/super method slot)
+(define-inline (method/hash-values/super method slot)
   (make (delay <pryll:meta-method>)
         (phash name: method
                code: (unwrap-pos-args
@@ -162,7 +168,7 @@
                                           method)
                                         '())))))))))
 
-(define (method/hash-values method slot)
+(define-inline (method/hash-values method slot)
   (make (delay <pryll:meta-method>)
         (phash name: method
                code: (unwrap-pos-args
@@ -171,7 +177,7 @@
                                        self
                                        slot)))))))
 
-(define (method/associate-with #!optional then)
+(define-inline (method/associate-with #!optional then)
   (define slot "associated-class")
   (method "associate-with"
           (unwrap-pos-args
@@ -183,15 +189,15 @@
               (dbg "associated " self " with " class)
               (and then (then self))))))
 
-(define (method name code)
+(define-inline (method name code)
   (make (delay <pryll:meta-method>)
         (phash name: name code: code)))
 
-(define (assert-mutable-class class)
+(define-inline (assert-mutable-class class)
   (or (pryll:object-internal class "finalized")
       (error "Finalized class can not be modified")))
 
-(define (method/accessor name slot #!optional preamble)
+(define-inline (method/accessor name slot #!optional preamble)
   (method name
           (unwrap-pos-args
             (lambda (self . rest)
@@ -200,12 +206,12 @@
                    (set! (pryll:object-data self slot) (car rest)))
               (pryll:object-data self slot)))))
 
-(define (all-methods class)
+(define-inline (all-methods class)
   (if (eqv? class <pryll:meta-class>)
     (phash-values (pryll:object-data class "methods"))
     (pryll:invoke class "get-all-methods")))
 
-(define (calc-icache class)
+(define-inline (calc-icache class)
   (let* ((attrs (pryll:invoke class "get-all-attributes")))
     (set! (pryll:object-internal class "icache")
       (filter (lambda (item)
@@ -216,7 +222,7 @@
                        "get-cacheable-init-code"))
                    attrs)))))
 
-(define (fix-mcache class)
+(define-inline (fix-mcache class)
   (let* ((methods (phash-values (pryll:object-data
                                   class
                                   "methods"
@@ -228,7 +234,7 @@
                           (pryll:object-data method "code")))
                   methods)))))
 
-(define (calc-mcache class)
+(define-inline (calc-mcache class)
   (let* ((methods (all-methods class)))
     (set! (pryll:object-internal class "mcache")
       (apply mkhash

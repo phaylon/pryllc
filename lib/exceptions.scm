@@ -1,4 +1,5 @@
 (declare (unit exceptions))
+(declare (export pryll:throw))
 
 (import chicken scheme)
 (require-extension srfi-1 srfi-13 data-structures)
