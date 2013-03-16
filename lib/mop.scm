@@ -113,7 +113,11 @@
                 (or nam (mkhash)))))
       (if fallback
         (fallback)
-        (error "Invalid method" method)))))
+        (pryll:err <pryll:error-unknown-method>
+                   meta:     meta
+                   method:   method
+                   location: (or loc (void)))))))
+;        (error "Invalid method" method)))))
 
 (define pryll:object-data
   (getter-with-setter
