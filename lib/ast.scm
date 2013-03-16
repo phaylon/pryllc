@@ -568,6 +568,39 @@
             (attr/item "container")
             (attr/item "slot"))
       (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                (let ((var-cont (compile/genvar 'container))
+                      (var-slot (compile/genvar 'slot))
+                      (loc (pryll:object-data self "location"))
+                      (cont (pryll:object-data self "container"))
+                      (slot (pryll:object-data self "slot")))
+                  `(let ((,var-cont ,(compile ctx cont))
+                         (,var-slot ,(compile ctx slot)))
+                     (cond ((list? ,var-cont)
+                            (if (> (length ,var-cont)
+                                   ,(compile/compile-typechecked
+                                      ctx
+                                      type/number
+                                      slot
+                                      var-slot))
+                              (list-ref ,var-cont
+                                        ,var-slot)
+                              (void)))
+                           ((hash-table? ,var-cont)
+                            (hash-table-ref/default
+                              ,var-cont
+                              ,(compile/compile-typechecked
+                                 ctx
+                                 type/string
+                                 slot
+                                 var-slot)
+                              (void)))
+                           (else
+                            (pryll:invoke
+                              ,var-cont
+                              "get"
+                              (list ,var-slot))))))))
             (dump-method
               (lambda (self)
                 `(slot
@@ -582,55 +615,7 @@
               slot:       slot))
 
 ;;
-;; hashes
-;;
-
-(define <pryll:ast-hash>
-  (mop/init
-    (mop/class name: "Core::AST::Hash")
-    (lambda (call)
-      (call add-attributes:
-            (attr/item "location")
-            (attr/item "items"))
-      (call add-methods:
-            (dump-method
-              (lambda (self)
-                `(hash
-                   ,@(map dump
-                          (pryll:invoke self "items"))))))
-      (call finalize:))))
-
-(define (make-hash op items)
-  (pryll:make <pryll:ast-hash>
-              location:   (token-location op)
-              items:      items))
-
-;;
-;; arrays
-;;
-
-(define <pryll:ast-array>
-  (mop/init
-    (mop/class name: "Core::AST::Array")
-    (lambda (call)
-      (call add-attributes:
-            (attr/item "location")
-            (attr/item "items"))
-      (call add-methods:
-            (dump-method
-              (lambda (self)
-                `(array
-                   ,@(map dump
-                          (pryll:invoke self "items"))))))
-      (call finalize:))))
-
-(define (make-array op items)
-  (pryll:make <pryll:ast-array>
-              location:   (token-location op)
-              items:      items))
-
-;;
-;; arguments
+;; positional and named
 ;;
 
 (define-inline (named-value? item)
@@ -679,6 +664,60 @@
                   (compile ctx item))))
             (filter positional-arg?
                     (pryll:object-data self "items")))))
+
+;;
+;; hashes
+;;
+
+(define <pryll:ast-hash>
+  (mop/init
+    (mop/class name: "Core::AST::Hash")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "items"))
+      (call add-methods:
+            (compile-method compile-nam-args)
+            (dump-method
+              (lambda (self)
+                `(hash
+                   ,@(map dump
+                          (pryll:invoke self "items"))))))
+      (call finalize:))))
+
+(define (make-hash op items)
+  (pryll:make <pryll:ast-hash>
+              location:   (token-location op)
+              items:      items))
+
+;;
+;; arrays
+;;
+
+(define <pryll:ast-array>
+  (mop/init
+    (mop/class name: "Core::AST::Array")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "items"))
+      (call add-methods:
+            (compile-method compile-pos-args)
+            (dump-method
+              (lambda (self)
+                `(array
+                   ,@(map dump
+                          (pryll:invoke self "items"))))))
+      (call finalize:))))
+
+(define (make-array op items)
+  (pryll:make <pryll:ast-array>
+              location:   (token-location op)
+              items:      items))
+
+;;
+;; arguments
+;;
 
 (define <pryll:ast-arguments>
   (mop/init

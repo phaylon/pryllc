@@ -20,6 +20,13 @@
                            (equal? sym first-item))
                          symbols)))))
 
+(define type/string
+  (list '<pryll:meta-string>
+        'string?
+        (lambda (value)
+          (or (string? value)
+              (is-call? '(conc sprintf) value)))))
+
 (define type/number
   (list '<pryll:meta-number>
         'number?
@@ -33,9 +40,23 @@
         (lambda (value)
           (is-call? '(list append map filter) value))))
 
+(define type/hash
+  (list '<pryll:meta-hash>
+        'hash-table?
+        (lambda (value)
+          (is-call? '(alist->hash-table) value))))
+
 (define-inline (type-meta type) (car type))
 (define-inline (type-pred type) (cadr type))
 (define-inline (type-const type) (caddr type))
+
+(define (compile/compile-typechecked ctx type ast . rest)
+  (compile/assert-type
+    type
+    (if (length rest)
+      (car rest)
+      (pryll:invoke ast "compile" (list ctx)))
+    (pryll:invoke ast "location")))
 
 (define (compile/assert-type type expression #!optional location)
   (if ((type-const type) expression)

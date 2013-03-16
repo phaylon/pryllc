@@ -7,6 +7,10 @@
     (lambda (call)
       (call add-methods:
             (mop/method
+              name: "str"
+              code: (lambda (pos nam)
+                      (number->string (car pos))))
+            (mop/method
               name: "num"
               code: (lambda (pos nam) (car pos))))
       (call finalize:))))
