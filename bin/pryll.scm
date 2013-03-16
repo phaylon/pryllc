@@ -16,6 +16,8 @@
     stack
     meta/number
     meta/string
+    meta/array
+    primitives
     ))
 
 (require-extension extras posix utils)

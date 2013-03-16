@@ -15,4 +15,11 @@
               code: (lambda (pos nam) (car pos))))
       (call finalize:))))
 
+(define <pryll:meta-integer>
+  (mop/init
+    (mop/class name: "Integer" extends: <pryll:meta-number>)
+    (lambda (call)
+      (call finalize:))))
+
 (mop/meta-number <pryll:meta-number>)
+(mop/meta-integer <pryll:meta-integer>)

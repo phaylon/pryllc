@@ -559,6 +559,19 @@
 ;; slot ref
 ;;
 
+(define-inline (compile-slot-access self ctx method extra)
+  (let ((var-cont (compile/genvar 'container))
+        (var-slot (compile/genvar 'slot))
+        (loc (pryll:object-data self "location"))
+        (cont (pryll:object-data self "container"))
+        (slot (pryll:object-data self "slot")))
+    `(let ((,var-cont ,(compile ctx cont))
+           (,var-slot ,(compile ctx slot)))
+       (pryll:invoke
+         ,var-cont
+         ,method
+         (list ,var-slot ,@extra)))))
+  
 (define <pryll:ast-slot-ref>
   (mop/init
     (mop/class name: "Core::AST::SlotRef")
@@ -568,39 +581,18 @@
             (attr/item "container")
             (attr/item "slot"))
       (call add-methods:
+            (mop/method
+              name: "compile-set"
+              code: (unwrap-pos-args
+                      (lambda (self ctx new-value)
+                        (compile-slot-access
+                          self
+                          ctx
+                          "set"
+                          (list (compile ctx new-value))))))
             (compile-method
               (lambda (self ctx)
-                (let ((var-cont (compile/genvar 'container))
-                      (var-slot (compile/genvar 'slot))
-                      (loc (pryll:object-data self "location"))
-                      (cont (pryll:object-data self "container"))
-                      (slot (pryll:object-data self "slot")))
-                  `(let ((,var-cont ,(compile ctx cont))
-                         (,var-slot ,(compile ctx slot)))
-                     (cond ((list? ,var-cont)
-                            (if (> (length ,var-cont)
-                                   ,(compile/compile-typechecked
-                                      ctx
-                                      type/number
-                                      slot
-                                      var-slot))
-                              (list-ref ,var-cont
-                                        ,var-slot)
-                              (void)))
-                           ((hash-table? ,var-cont)
-                            (hash-table-ref/default
-                              ,var-cont
-                              ,(compile/compile-typechecked
-                                 ctx
-                                 type/string
-                                 slot
-                                 var-slot)
-                              (void)))
-                           (else
-                            (pryll:invoke
-                              ,var-cont
-                              "get"
-                              (list ,var-slot))))))))
+                (compile-slot-access self ctx "get" '())))
             (dump-method
               (lambda (self)
                 `(slot

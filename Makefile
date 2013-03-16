@@ -16,6 +16,7 @@ clean:
 #	rm -f $(BUILDSCM)
 #	rm -f $(BUILDOBJ)
 	rm -f $(MAINOBJ)
+	rm -f .pryll.*
 #	rmdir blib
 
 test: force
