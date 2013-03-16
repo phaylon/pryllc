@@ -9,15 +9,12 @@
             (mop/method
               name: "set"
               code: (lambda (pos nam)
-                      (let* ((array (assert/array (car pos)))
-                             (index (assert/number (cadr pos))))
-                        (set! (p/array-ref array index) (caddr pos)))))
+                      (set! (p/array-ref (car pos) (cadr pos))
+                        (caddr pos))))
             (mop/method
               name: "get"
               code: (lambda (pos nam)
-                      (let* ((array (assert/array (car pos)))
-                             (index (assert/number (cadr pos))))
-                        (p/array-ref array index)))))
+                      (p/array-ref (car pos) (cadr pos)))))
       (call finalize:))))
 
 (mop/meta-array <pryll:meta-array>)
