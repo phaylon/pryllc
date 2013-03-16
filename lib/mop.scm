@@ -1,10 +1,8 @@
-(declare (uses util))
 (declare (unit mop))
-
-(import chicken scheme)
-(require-extension srfi-69 srfi-1 srfi-13 data-structures lolevel)
-
-(define-record object meta data internal)
+(declare (uses util))
+(declare (uses stack))
+;(declare (uses meta/number
+;               meta/string))
 
 (declare (hide object?
                make-object
@@ -12,10 +10,42 @@
                object-data
                object-internal))
 
+(import chicken scheme)
+(require-extension srfi-69 srfi-1 srfi-13 data-structures lolevel)
+
+(define-record object meta data internal)
+
+(define (pryll:name object)
+  (let ((name (pryll:object-data object "name")))
+    (if (v-true? name)
+      name
+      "<unnamed>")))
+
+;(define-record-printer (object instance out)
+;  (display
+;    (conc "#<instance of "
+;          (pryll:name (pryll:meta-for instance))
+;          ">"))
+;    out)
+
 (define (mop/init object proc)
   (proc (lambda (method . args)
           (pryll:invoke object (->string method) args)))
   object)
+
+(define (mop/describe title item)
+;  (say title)
+  (define (dumper value)
+    (cond ((hash-table? value)
+           (map (lambda (key)
+                  (list key (dumper (hash-table-ref value key))))
+                (hash-table-keys value)))
+          (else value)))
+  (say
+    (list (list "data"
+                (dumper (object-data item)))
+          (list "internal"
+                (dumper (object-internal item))))))
 
 (define (mop/attribute . args)
   (pryll:invoke
@@ -24,8 +54,12 @@
     (list)
     (apply phash args)))
 
-(define (mop/method #!key name code)
-  (method name code))
+(define (mop/role #!key name)
+  (pryll:invoke
+    <pryll:meta-role>
+    "new"
+    (list)
+    (phash name: name)))
 
 (define (mop/class #!key name extends)
   (pryll:invoke
@@ -49,11 +83,14 @@
     (list)
     (apply phash args)))
 
+(define mop/meta-string (make-parameter #f))
+(define mop/meta-number (make-parameter #f))
+
 (define (pryll:meta-for item)
-  (cond ((object? item)
-         (force (object-meta item)))
-        (else
-         (error "Unable to find meta for" item))))
+  (cond ((object? item) (force (object-meta item)))
+        ((number? item) (mop/meta-number))
+        ((string? item) (mop/meta-string))
+        (else           (error "Unable to find meta for" item))))
 
 (define (make meta #!optional data internal)
   (make-object
@@ -61,15 +98,20 @@
     (or data (mkhash))
     (or internal (mkhash))))
 
-(define (pryll:invoke object method #!optional pos nam)
+(define (pryll:invoke object method #!optional pos nam fallback)
   (dbg "call method " object " " method " " pos " " nam)
   (let* ((meta (pryll:meta-for object))
          (mcache (pryll:object-internal meta "mcache"))
          (proc (phash-slot mcache method)))
     (if (not-void? proc)
-      (proc (append (list object) (or pos (list)))
-            (or nam (mkhash)))
-      (error "Invalid method" method))))
+      (pryll:stack-level
+        (list "method" (conc (pryll:name meta) "." method))
+        (lambda ()
+          (proc (append (list object) (or pos (list)))
+                (or nam (mkhash)))))
+      (if fallback
+        (fallback)
+        (error "Invalid method" method)))))
 
 (define pryll:object-data
   (getter-with-setter
@@ -97,6 +139,8 @@
 (define <pryll:meta-class>)
 (define <pryll:meta-attribute>)
 (define <pryll:meta-method>)
+(define <pryll:meta-role>)
+(define <pryll:meta-method-modifier>)
 
 (define-inline (attr/item name . rest)
   (make (delay <pryll:meta-attribute>)
@@ -177,18 +221,6 @@
                                        self
                                        slot)))))))
 
-(define-inline (method/associate-with #!optional then)
-  (define slot "associated-class")
-  (method "associate-with"
-          (unwrap-pos-args
-            (lambda (self class)
-              (and (not-void? (pryll:object-data self slot))
-                   (error "Meta object already associated"))
-              (set! (pryll:object-data self slot)
-                class)
-              (dbg "associated " self " with " class)
-              (and then (then self))))))
-
 (define-inline (method name code)
   (make (delay <pryll:meta-method>)
         (phash name: name code: code)))
@@ -235,12 +267,49 @@
                   methods)))))
 
 (define-inline (calc-mcache class)
-  (let* ((methods (all-methods class)))
+  (let* ((methods (pryll:invoke class "get-all-methods")))
     (set! (pryll:object-internal class "mcache")
       (apply mkhash
              (map (lambda (method)
-                    (pryll:invoke method "get-cacheable-code"))
+                    (list (pryll:invoke method "name")
+                          (pryll:invoke method "get-cacheable-code")))
                   methods)))))
+
+(set! <pryll:meta-method-modifier>
+  (make
+    (delay <pryll:meta-class>)
+    (phash
+      name: "Method::Modifier"
+      attributes:
+        (phash name:        (attr/ro "name")
+               original:    (attr/ro "original")
+               code:        (attr/ro "code"))
+      methods:
+        (phash
+          name:
+            (method/reader "name" "name")
+          code:
+            (method/reader "code" "code")
+          get-cacheable-code:
+            (method
+              "get-cacheable-code"
+              (unwrap-pos-args
+                (lambda (self)
+                  (let* ((orig (pryll:invoke
+                                 (pryll:object-data self "original")
+                                 "get-cacheable-code"))
+                         (code (pryll:object-data self "code")))
+                    (lambda (pos nam)
+                      (code (append (list orig) pos)
+                            nam))))))
+          call:
+            (method
+              "call"
+              (lambda (pos nam)
+                (let* ((code (pryll:invoke self "get-cacheable-code"))
+                       (self (car pos)))
+                  (code (cdr pos) nam))))
+        ))))
 
 (set! <pryll:meta-method>
   (make
@@ -254,13 +323,13 @@
         (phash
           name:
             (method/reader "name" "name")
+          code:
+            (method/reader "code" "code")
           get-cacheable-code:
             (method "get-cacheable-code"
               (unwrap-pos-args
                 (lambda (self)
                   (pryll:object-data self "code"))))
-          associate-with:
-            (method/associate-with)
           call:
             (method "call"
               (lambda (pos nam)
@@ -276,13 +345,12 @@
   (method
     (conc "install-" type)
     (unwrap-pos-args
-      (lambda (self name)
+      (lambda (self target name)
         (let* ((code (pryll:invoke
                        self
-                       (conc "get-" type "-code")))
-               (class (pryll:invoke self "associated-class")))
+                       (conc "get-" type "-code"))))
           (pryll:invoke
-            class
+            target
             "add-method"
             (list (method name code))))))))
 
@@ -298,7 +366,6 @@
                is-required:       (attr/ro "is-required")
                is-lazy:           (attr/ro "is-lazy")
                default:           (attr/ro "default")
-               associated-class:  (attr/ro "associated-class")
                init-arg:          (attr/ro "init-arg"))
       methods:
         (phash
@@ -316,12 +383,6 @@
             (method/reader "is-lazy" "is-lazy")
           default:
             (method/reader "default" "default")
-          associated-class:
-            (method/reader "associated-class" "associated-class")
-          associate-with:
-            (method/associate-with
-              (lambda (self)
-                (pryll:invoke self "install")))
           get-accessor-code:
             (method
               "get-accessor-code"
@@ -362,7 +423,7 @@
                             (pryll:object-data object name)
                             (begin
                               (set! (pryll:object-data object name)
-                                (default object))
+                                (default (list object) (mkhash)))
                               (pryll:object-data object name))))
                         (lambda (object)
                           (pryll:object-data object name))))))))
@@ -376,25 +437,27 @@
             (method
               "install"
               (unwrap-pos-args
-                (lambda (self)
+                (lambda (self target)
                   (let* ((reader (pryll:invoke self "reader"))
                          (writer (pryll:invoke self "writer"))
-                         (name (pryll:invoke self "name"))
-                         (class (pryll:invoke self "associated-class")))
+                         (name (pryll:invoke self "name")))
                     (dbg "installing attribute " name)
                     (if (and (v-true? reader)
                              (v-true? writer)
                              (string=? reader writer))
-                      (pryll:invoke self "install-accessor" reader)
+                      (pryll:invoke
+                        self
+                        "install-accessor"
+                        (liast target reader))
                       (begin
                         (if (v-true? reader)
                           (pryll:invoke self
                                         "install-reader"
-                                        (list reader)))
+                                        (list target reader)))
                         (if (v-true? writer)
                           (pryll:invoke self
                                         "install-writer"
-                                        (list writer)))))
+                                        (list target writer)))))
                     (void)))))
           get-cacheable-init-code:
             (method
@@ -420,11 +483,8 @@
                               (phash-slot args init-arg))
                             (if (v-true? default)
                               (if (v-false? lazy)
-                                (begin
-                                  (dbg "default")
                                 (set! (pryll:object-data object name)
-                                  (default object)))
-                                )
+                                  (default (list object) (mkhash))))
                               (if required
                                 (error "Required attribute" name))))
                           (void)))
@@ -465,9 +525,26 @@
     ; TODO check for existing methods
     (set! (phash-slot (pryll:object-data self "methods")
                       (pryll:invoke method "name"))
-      method)
-    (pryll:invoke method "associate-with" (list self))
-    ))
+      method)))
+
+(define (class-add-method-modifier pos nam)
+  (let* ((self (car pos))
+         (name (cadr pos))
+         (code (caddr pos))
+         (curr (pryll:invoke self "find-method" (list name))))
+;    (say "modifier " name " " code " " curr)
+    (if (not-void? curr)
+      (set! (phash-slot (pryll:object-data self "methods") name)
+        (pryll:invoke
+          <pryll:meta-method-modifier>
+          "new"
+          (list)
+          (phash original:  curr
+                 name:      name
+                 code:      code)))
+      (error "Cannot wrap unknown method" name))
+;    (say "added modifier")
+    (void)))
 
 (define (class-add-attribute pos nam)
   (let* ((self (car pos))
@@ -476,7 +553,7 @@
     (set! (phash-slot (pryll:object-data self "attributes")
                       (pryll:invoke attr "name"))
       attr)
-    (pryll:invoke attr "associate-with" (list self))))
+      (pryll:invoke attr "install" (list self))))
 
 (set! <pryll:meta-class>
   (make
@@ -497,6 +574,17 @@
               "new"
               (lambda (pos nam)
                 (construct-instance (car pos) (cdr pos) nam)))
+          copy:
+            (method
+              "copy"
+              (unwrap-pos-args
+                (lambda (self instance)
+                  (make
+                    (object-meta instance)
+                    (hash-table-copy
+                      (object-data instance))
+                    (hash-table-copy
+                      (object-internal instance))))))
           is-a:
             ;; TODO cache inheritance in objects
             (method
@@ -516,7 +604,7 @@
               (unwrap-pos-args
                 (lambda (self)
                   (dbg "finalize " self)
-                  (fix-mcache self)
+                  (calc-mcache self)
                   (dbg "mcache fixed")
                   (calc-icache self)
                   (dbg "icache calculated")
@@ -528,10 +616,20 @@
               "superclass"
               "superclass"
               assert-mutable-class)
+          add-method-modifier:
+            (method "add-method-modifier" class-add-method-modifier)
           add-method:
             (method "add-method" class-add-method)
           add-attribute:
             (method "add-attribute" class-add-attribute)
+          add-role:
+            (method
+              "add-role"
+              (lambda (pos nam)
+                (pryll:invoke
+                  (cadr pos)
+                  "apply"
+                  (list (car pos)))))
           add-methods:
             (method
               "add-methods"
@@ -550,6 +648,17 @@
                                      "add-attribute"
                                      (list item)))
                      (cdr pos))))
+          find-method:
+            (method
+              "find-method"
+              (unwrap-pos-args
+                (lambda (self name)
+                  (if (pryll:invoke self "has-method" (list name))
+                    (pryll:invoke self "get-method" (list name))
+                    (let ((super (pryll:invoke self "superclass")))
+                      (if (not-void? super)
+                        (pryll:invoke super "find-method" (list name))
+                        (void)))))))
           has-attribute:
             (method/hash-predicate "has-attribute" "attributes")
           get-attribute:
@@ -566,28 +675,156 @@
             (method/hash-values/super "get-all-methods" "methods")
           ))))
 
-(define (fix-assoc slot class)
-  (for-each (lambda (item)
-              (dbg "associate " item " with " class)
-              (pryll:invoke item "associate-with" (list class)))
-            (phash-values
-              (pryll:object-data class slot))))
+;(define (fix-assoc slot class)
+;  (for-each (lambda (item)
+;              (dbg "associate " item " with " class)
+;              (pryll:invoke item "associate-with" (list class)))
+;            (phash-values
+;              (pryll:object-data class slot))))
 
 (for-each fix-mcache
           (list <pryll:meta-class>
                 <pryll:meta-attribute>
-                <pryll:meta-method>))
+                <pryll:meta-method>
+                <pryll:meta-method-modifier>))
 
 (for-each calc-icache
           (list <pryll:meta-class>
                 <pryll:meta-attribute>
-                <pryll:meta-method>))
+                <pryll:meta-method>
+                <pryll:meta-method-modifier>))
 
-(for-each (lambda (class)
-            (dbg "fixing " class)
-            (fix-assoc "methods" class))
-          (list
-            <pryll:meta-class>
-            <pryll:meta-attribute>
-            <pryll:meta-method>))
+;(for-each (lambda (class)
+;            (dbg "fixing " class)
+;            (fix-assoc "methods" class))
+;          (list
+;            <pryll:meta-class>
+;            <pryll:meta-attribute>
+;            <pryll:meta-method>))
+
+(define (mop/copy object)
+  (pryll:invoke
+    (pryll:meta-for object)
+    "copy"
+    (list object)))
+
+(define <pryll:meta-role-apply-attribute>
+  (mop/init
+    (mop/class name: "Role::Apply::Attribute")
+    (lambda (call)
+      (call add-attributes:
+            (attr/ro "attribute"))
+      (call add-methods:
+            (method
+              "apply"
+              (unwrap-pos-args
+                (lambda (self target)
+                  (pryll:invoke
+                    target
+                    "add-attribute"
+                    (list (pryll:invoke self "attribute")))))))
+      (call finalize:))))
+
+(define <pryll:meta-role-apply-method>
+  (mop/init
+    (mop/class name: "Role::Apply::Method")
+    (lambda (call)
+      (call add-attributes:
+            (attr/ro "method"))
+      (call add-methods:
+            (method
+              "apply"
+              (unwrap-pos-args
+                (lambda (self target)
+                  (pryll:invoke
+                    target
+                    "add-method"
+                    (list (pryll:invoke self "method")))))))
+      (call finalize:))))
+
+(define <pryll:meta-role-apply-method-modifier>
+  (mop/init
+    (mop/class name: "Role::Apply::Method::Modifier")
+    (lambda (call)
+      (call add-attributes:
+            (attr/ro "name")
+            (attr/ro "code"))
+      (call add-methods:
+            (method
+              "apply"
+              (unwrap-pos-args
+                (lambda (self target)
+                  (pryll:invoke
+                    target
+                    "add-method-modifier"
+                    (list (pryll:object-data self "name")
+                          (pryll:object-data self "code")))))))
+      (call finalize:))))
+
+(set! <pryll:meta-role>
+  (mop/init
+    (mop/class name: "Role")
+    (lambda (call)
+      (call add-attributes:
+            (attr/ro "name")
+            (attr/ro "sequence"
+                     default: (lambda args (list))))
+      (call add-methods:
+            (method
+              "extend-sequence"
+              (lambda (pos nam)
+                (let ((self (car pos)))
+                  (set! (pryll:object-data self "sequence")
+                    (append
+                      (pryll:object-data self "sequence")
+                      (cdr pos))))
+                (void)))
+            (method
+              "add-method-modifier"
+              (unwrap-pos-args
+                (lambda (self name code)
+                  (pryll:invoke
+                    self
+                    "extend-sequence"
+                    (list
+                      (pryll:make
+                        <pryll:meta-role-apply-method-modifier>
+                        name: name
+                        code: code))))))
+            (method
+              "add-method"
+              (unwrap-pos-args
+                (lambda (self method)
+                  (pryll:invoke
+                    self
+                    "extend-sequence"
+                    (list
+                      (pryll:make
+                        <pryll:meta-role-apply-method>
+                        method: method)))
+                  (void))))
+            (method
+              "add-attribute"
+              (unwrap-pos-args
+                (lambda (self attr)
+                  (pryll:invoke
+                    self
+                    "extend-sequence"
+                    (list
+                      (pryll:make
+                        <pryll:meta-role-apply-attribute>
+                        attribute: attr)))
+                  (void))))
+            (method
+              "apply"
+              (unwrap-pos-args
+                (lambda (self target)
+                  (map (lambda (app)
+;                         (say "applying " app " to " target)
+                         (pryll:invoke app "apply" (list target)))
+                       (pryll:object-data self "sequence"))))))
+      (call finalize:))))
+
+(define (mop/method #!key name code)
+  (method name code))
 

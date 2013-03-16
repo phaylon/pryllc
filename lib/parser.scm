@@ -108,7 +108,7 @@
   (define get-location
     (let ((original body))
       (lambda ()
-        (let* ((removed (irregex-replace `(: ,body eos) ""))
+        (let* ((removed (irregex-replace `(: ,body eos) original ""))
                (lines   (unempty (irregex-split 'newline removed)))
                (last    (car (reverse lines)))
                (lnum    (length lines))
@@ -123,15 +123,16 @@
              (pattern (cadr token)))
         (let ((match (irregex-search pattern body)))
           (if match
-            (let ((str (irregex-match-substring match)))
+            (let ((str (irregex-match-substring match))
+                  (loc (get-location)))
               (set! body (irregex-replace pattern body ""))
               (if (eqv? type 'DISCARD)
                 (next-token token-patterns)
-                (let ((location (get-location)))
+                (begin
                   (make-lexical-token
                     (clear-token-type type str)
-                    (pryll-location->source-location location)
-                    `(,str ,location)))))
+                    (pryll-location->source-location loc)
+                    `(,str ,loc)))))
             (next-token rest))))))
   (lambda ()
     (if (zero? (string-length body))

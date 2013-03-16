@@ -40,6 +40,11 @@
   (dbg title " " value)
   value)
 
+(define (say . items)
+  (display "[info] ")
+  (map display items)
+  (newline))
+
 (define (dbg . items)
   (if DEBUG
     (begin
