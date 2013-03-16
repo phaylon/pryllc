@@ -80,11 +80,13 @@
                      (self (cadr pos))
                      (rest (cddr pos)))
                 (conc (orig (append (list self) rest) nam)
-                      "\n\nStackTrace:\n"
+                      "\n\nStack Trace:\n"
                       (apply
                         conc
                         (map (lambda (item)
-                               (conc "\t" (string-join item " ") "\n"))
+                               (conc "\t"
+                                     (pryll:format-stack-id item)
+                                     "\n"))
                              (pryll:object-data self "trace"))))))))))
 
 (define <pryll:error-type>
@@ -117,11 +119,44 @@
                           "> but received <"
                           received
                           ">")))))
-      (call add-role:
-            <pryll:role-throwable>)
-      (call add-role:
-            <pryll:role-throwable-location>)
-      (call add-role:
+      (call add-roles:
+            <pryll:role-throwable>
+            <pryll:role-throwable-location>
+            <pryll:role-throwable-stacktrace>)
+      (call finalize:))))
+
+(define <pryll:error-coercion>
+  (mop/init
+    (mop/class name: "Error::Coercion")
+    (lambda (call)
+      (call add-attributes:
+            (mop/attribute
+              name:        "from-type"
+              init-arg:    "from-type"
+              reader:      "from-type"
+              is-required: #t)
+            (mop/attribute
+              name:        "to-type"
+              init-arg:    "to-type"
+              reader:      "to-type"
+              is-required: #t))
+      (call add-roles:
+            <pryll:role-throwable>
+            <pryll:role-throwable-message>)
+      (call add-method-modifier:
+            "get-message"
+            (lambda (pos nam)
+              (let* ((orig (car pos))
+                     (self (cadr pos))
+                     (rest (cddr pos)))
+                (conc "Unable to coerce from <"
+                      (pryll:name (pryll:invoke self "from-type"))
+                      "> to <"
+                      (pryll:name (pryll:invoke self "to-type"))
+                      "> because:\n\t"
+                      (orig (append (list self) rest) nam)))))
+      (call add-roles:
+            <pryll:role-throwable-location>
             <pryll:role-throwable-stacktrace>)
       (call finalize:))))
 
@@ -129,13 +164,10 @@
   (mop/init
     (mop/class name: "Error::Syntax")
     (lambda (call)
-      (call add-role:
-            <pryll:role-throwable>)
-      (call add-role:
-            <pryll:role-throwable-message>)
-      (call add-role:
-            <pryll:role-throwable-location>)
-      (call add-role:
+      (call add-roles:
+            <pryll:role-throwable>
+            <pryll:role-throwable-message>
+            <pryll:role-throwable-location>
             <pryll:role-throwable-stacktrace>)
       (call finalize:))))
 

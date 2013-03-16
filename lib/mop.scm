@@ -96,14 +96,18 @@
     (or data (mkhash))
     (or internal (mkhash))))
 
-(define (pryll:invoke object method #!optional pos nam fallback)
+(define (pryll:invoke object method #!optional pos nam fallback loc)
   (dbg "call method " object " " method " " pos " " nam)
   (let* ((meta (pryll:meta-for object))
          (mcache (pryll:object-internal meta "mcache"))
          (proc (phash-slot mcache method)))
     (if (not-void? proc)
       (pryll:stack-level
-        (list "method" (conc (pryll:name meta) "." method))
+        (pryll:stack-id "method"
+                        loc
+                        (conc (pryll:name meta)
+                              "."
+                              method))
         (lambda ()
           (proc (append (list object) (or pos (list)))
                 (or nam (mkhash)))))
@@ -618,6 +622,15 @@
             (method "add-method" class-add-method)
           add-attribute:
             (method "add-attribute" class-add-attribute)
+          add-roles:
+            (method
+              "add-roles"
+              (lambda (pos nam)
+                (map (lambda (item)
+                       (pryll:invoke (car pos)
+                                     "add-role"
+                                     (list item)))
+                     (cdr pos))))
           add-role:
             (method
               "add-role"

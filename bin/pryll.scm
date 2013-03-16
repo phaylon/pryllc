@@ -35,6 +35,9 @@
          (name (or out (conc ".pryll." (current-process-id))))
          (scm  (conc name ".scm"))
          (scmo (conc name ".o")))
+;    (say "CODE")
+;    (say code)
+;    (say "---")
     (with-output-to-file
       scm
       (lambda ()

@@ -27,6 +27,12 @@
           (or (number? value)
               (is-call? '(+ - * /) value)))))
 
+(define type/array
+  (list '<pryll:meta-array>
+        'list?
+        (lambda (value)
+          (is-call? '(list append map filter) value))))
+
 (define-inline (type-meta type) (car type))
 (define-inline (type-pred type) (cadr type))
 (define-inline (type-const type) (caddr type))

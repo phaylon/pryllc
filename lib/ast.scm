@@ -477,6 +477,35 @@
             (attr/item "method")
             (attr/item "arguments"))
       (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                (let ((var-inv (compile/genvar 'invocant))
+                      (var-met (compile/genvar 'method))
+                      (inv     (pryll:object-data self "invocant"))
+                      (met     (pryll:object-data self "method"))
+                      (chain   (pryll:object-data self "is-chained"))
+                      (maybe   (pryll:object-data self "is-maybe"))
+                      (args    (pryll:object-data self "arguments")))
+                  `(let ((,var-inv ,(compile ctx inv))
+                         (,var-met ,(compile ctx met)))
+                     (pryll:invoke
+                       ,var-inv
+                       ,var-met
+                       ,(pryll:invoke
+                          args
+                          "compile-positional"
+                          (list ctx))
+                       ,(pryll:invoke
+                          args
+                          "compile-named"
+                          (list ctx))
+                       ,(if maybe
+                          `(lambda args (void))
+                          #f)
+                       (list ,@(pryll:object-data self "location")))
+                     ,@(if chain
+                         (list var-inv)
+                         '())))))
             (dump-method
               (lambda (self)
                 `(call-method
@@ -604,6 +633,53 @@
 ;; arguments
 ;;
 
+(define-inline (named-value? item)
+  (pryll:isa? item <pryll:ast-named-value>))
+
+(define-inline (hash-splice? item)
+  (pryll:isa? item <pryll:ast-splice-hash>))
+
+(define-inline (array-splice? item)
+  (pryll:isa? item <pryll:ast-splice-array>))
+
+(define-inline (named-arg? item)
+  (or (named-value? item)
+      (hash-splice? item)))
+
+(define-inline (positional-arg? item)
+  (not (named-arg? item)))
+
+(define-inline (compile-nam-args self ctx)
+  `(alist->hash-table
+     (append
+       ,@(map (lambda (item)
+                (if (hash-splice? item)
+                  `(hash-table->alist
+                     (compile/assert-type
+                       type/hash
+                       (compile ctx item)
+                       (pryll:invoke item "location")))
+                  `(list
+                     (cons
+                       ,(compile ctx (pryll:invoke item "name"))
+                       ,(compile ctx (pryll:invoke item "value"))))))
+              (filter named-arg?
+                      (pryll:object-data self "items"))))))
+
+(define-inline (compile-pos-args self ctx)
+  `(append
+     ,@(map (lambda (item)
+              (if (array-splice? item)
+                (compile/assert-type
+                  type/array
+                  (compile ctx item)
+                  (pryll:invoke item "location"))
+                (list
+                  'list
+                  (compile ctx item))))
+            (filter positional-arg?
+                    (pryll:object-data self "items")))))
+
 (define <pryll:ast-arguments>
   (mop/init
     (mop/class name: "Core::AST::Arguments")
@@ -611,6 +687,12 @@
       (call add-attributes:
             (attr/item "items"))
       (call add-methods:
+            (mop/method
+              name: "compile-positional"
+              code: (unwrap-pos-args compile-pos-args))
+            (mop/method
+              name: "compile-named"
+              code: (unwrap-pos-args compile-nam-args))
             (dump-method
               (lambda (self)
                 `(array
