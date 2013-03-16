@@ -9,8 +9,13 @@
 ;(declare (uses build))
 
 (define runtime-uses
-  '(util mop exceptions errors stack
-    meta/number meta/string
+  '(util
+    mop
+    exceptions
+    errors
+    stack
+    meta/number
+    meta/string
     ))
 
 (require-extension extras posix utils)
@@ -30,8 +35,6 @@
          (name (or out (conc ".pryll." (current-process-id))))
          (scm  (conc name ".scm"))
          (scmo (conc name ".o")))
-;    (map display (list "CODE " code))
-;    (newline)
     (with-output-to-file
       scm
       (lambda ()
@@ -79,19 +82,3 @@
            (compile-pryll-expression opt args))
           (else
            (compile-pryll-file opt args)))))
-
-;(define source
-;  (list-ref (argv) (- (length (argv)) 1)))
-;
-;(define ast (source->ast "command line" source))
-;
-;(pretty-print (pryll:invoke ast "debug-dump"))
-;
-;(define code (ast->code ast))
-;
-;(pretty-print code)
-;
-;(define result (eval code (scheme-report-environment 5)))
-;
-;(say ";; RESULT")
-;(pretty-print result)

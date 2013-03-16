@@ -1,8 +1,6 @@
 (declare (unit mop))
 (declare (uses util))
 (declare (uses stack))
-;(declare (uses meta/number
-;               meta/string))
 
 (declare (hide object?
                make-object
@@ -532,7 +530,6 @@
          (name (cadr pos))
          (code (caddr pos))
          (curr (pryll:invoke self "find-method" (list name))))
-;    (say "modifier " name " " code " " curr)
     (if (not-void? curr)
       (set! (phash-slot (pryll:object-data self "methods") name)
         (pryll:invoke
@@ -543,7 +540,6 @@
                  name:      name
                  code:      code)))
       (error "Cannot wrap unknown method" name))
-;    (say "added modifier")
     (void)))
 
 (define (class-add-attribute pos nam)
@@ -675,13 +671,6 @@
             (method/hash-values/super "get-all-methods" "methods")
           ))))
 
-;(define (fix-assoc slot class)
-;  (for-each (lambda (item)
-;              (dbg "associate " item " with " class)
-;              (pryll:invoke item "associate-with" (list class)))
-;            (phash-values
-;              (pryll:object-data class slot))))
-
 (for-each fix-mcache
           (list <pryll:meta-class>
                 <pryll:meta-attribute>
@@ -693,14 +682,6 @@
                 <pryll:meta-attribute>
                 <pryll:meta-method>
                 <pryll:meta-method-modifier>))
-
-;(for-each (lambda (class)
-;            (dbg "fixing " class)
-;            (fix-assoc "methods" class))
-;          (list
-;            <pryll:meta-class>
-;            <pryll:meta-attribute>
-;            <pryll:meta-method>))
 
 (define (mop/copy object)
   (pryll:invoke
@@ -820,7 +801,6 @@
               (unwrap-pos-args
                 (lambda (self target)
                   (map (lambda (app)
-;                         (say "applying " app " to " target)
                          (pryll:invoke app "apply" (list target)))
                        (pryll:object-data self "sequence"))))))
       (call finalize:))))

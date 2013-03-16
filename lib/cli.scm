@@ -68,7 +68,6 @@
                     (list value)))
           options))))
   (define (traverse args options rest)
-;    (say "traverse " args)
     (if (null? args)
       (proc options rest)
       (let* ((next-arg (car args)))
