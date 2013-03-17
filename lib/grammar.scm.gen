@@ -224,7 +224,7 @@
 
   (opt-assign
         (OP_ASSIGN expression)
-            : $1
+            : $2
         ()
             : #f)
 

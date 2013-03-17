@@ -87,6 +87,7 @@
 (define mop/meta-hash       (make-parameter #f))
 (define mop/meta-void       (make-parameter #f))
 (define mop/meta-bool       (make-parameter #f))
+(define mop/meta-lambda     (make-parameter #f))
 (define mop/meta-integer    (make-parameter #f))
 
 (define (pryll:meta-for item)
@@ -98,7 +99,18 @@
         ((hash-table? item) (mop/meta-hash))
         ((void? item)       (mop/meta-void))
         ((boolean? item)    (mop/meta-bool))
+        ((procedure? item)  (mop/meta-lambda))
         (else               (error "Unable to find meta for" item))))
+
+(define (pryll:call func pos nam location)
+  (cond ((procedure? func)
+         (pryll:stack-level
+           (pryll:stack-id "lambda"
+                           location
+                           "")
+           (lambda ()
+             (func pos nam))))
+        (else (pryll:invoke func "call" pos nam))))
 
 (define (make meta #!optional data internal)
   (make-object

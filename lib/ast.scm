@@ -287,6 +287,14 @@
             (attr/item "function")
             (attr/item "arguments"))
       (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                (let ((args (pryll:object-data self "arguments")))
+                `(pryll:call
+                   ,(compile ctx (pryll:object-data self "function"))
+                   ,(pryll:invoke args "compile-positional" (list ctx))
+                   ,(pryll:invoke args "compile-named" (list ctx))
+                   (list ,@(pryll:object-data self "location"))))))
             (dump-method
               (lambda (self)
                 `(call ,(dump-slot self "function")
@@ -1011,6 +1019,11 @@
                       (if type
                         `(type ,(dump type))
                         'no-type))
+                   ,(let ((default (pryll:object-data self "default")))
+                      (say "DEFAULT " default)
+                      (if default
+                        `(default ,(dump default))
+                        'no-default))
                    ,(let ((opt (pryll:object-data self "is-optional")))
                       (if opt 'is-optional 'is-required))))))
       (call finalize:))))
@@ -1019,7 +1032,7 @@
   (pryll:make <pryll:ast-signature-param-pos>
               type:         type
               variable:     var
-              is-optional:  optional
+              is-optional:  (or default optional)
               default:      default))
 
 (define <pryll:ast-signature-param-nam>
@@ -1040,6 +1053,10 @@
                       (if type
                         `(type ,(dump type))
                         'no-type))
+                   ,(let ((default (pryll:object-data self "default")))
+                      (if default
+                        `(default ,(dump default))
+                        'no-default))
                    ,(let ((opt (pryll:object-data self "is-optional")))
                       (if opt 'is-optional 'is-required))))))
       (call finalize:))))
@@ -1048,7 +1065,7 @@
   (pryll:make <pryll:ast-signature-param-nam>
               type:         type
               variable:     var
-              is-optional:  optional
+              is-optional:  (or default optional)
               default:      default))
 
 (define-inline (named-param? value)

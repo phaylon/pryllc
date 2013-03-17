@@ -18,6 +18,7 @@
     meta/string
     meta/array
     meta/hash
+    meta/void
     nether
     primitives
     ))

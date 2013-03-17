@@ -137,7 +137,7 @@
                               (parent (pryll:object-data self "parent")))
                           (if (hash-table-exists? vars name)
                             (hash-table-ref vars name)
-                            (if (not-void? parent)
+                            (if parent
                               (pryll:invoke
                                 parent
                                 "find-variable"
