@@ -222,18 +222,26 @@
         ()
             : #f)
 
+  (opt-assign
+        (OP_ASSIGN expression)
+            : $1
+        ()
+            : #f)
+
   (parameter-positional
         (parameter-type
          lexical-variable
-         opt-qmark)
-            : (make-signature-param-pos $1 $2 $3))
+         opt-qmark
+         opt-assign)
+            : (make-signature-param-pos $1 $2 $3 $4))
 
   (parameter-named
         (parameter-type
          COLON
          lexical-variable
-         opt-qmark)
-            : (make-signature-param-nam $1 $3 $4))
+         opt-qmark
+         opt-assign)
+            : (make-signature-param-nam $1 $3 $4 $5))
 
   (parameter-rest
         (splice-array)

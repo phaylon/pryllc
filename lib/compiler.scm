@@ -154,6 +154,11 @@
                             (hash-table-set! vars name var)))))))
       (call finalize:))))
 
+(define (subcontext ctx)
+  (pryll:make <context>
+              parent:    ctx
+              variables: (mkhash)))
+
 (define (ast->code ast)
   (let ((ctx (pryll:make <context>
                          parent:    #f
