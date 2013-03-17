@@ -1,10 +1,12 @@
 PROGRAM 	= bin/pryll
 SCM_FILES 	= $(shell find lib/ -type f -name "*.scm")
 OBJS 		= $(patsubst %.scm, %.o, $(SCM_FILES))
-BUILDSCM	= blib/build.scm
-BUILDOBJ	= blib/build.o
+#BUILDSCM	= blib/build.scm
+#BUILDOBJ	= blib/build.o
 MAINSCM		= bin/pryll.scm
 MAINOBJ		= bin/pryll.o
+GRAMMARSCM  = lib/grammar.scm.gen
+GRAMMARYY   = lib/grammar.scm.yy
 
 all: $(PROGRAM)
 
@@ -23,7 +25,11 @@ test: force
 	csi -s t/lexing.t.scm
 	csi -s t/compilation.t.scm
 
-$(PROGRAM): $(MAINOBJ) $(OBJS)
+$(GRAMMARYY): $(GRAMMARSCM)
+	csi -s $(GRAMMARSCM)
+	rm -f lib/parser.o
+
+$(PROGRAM): $(GRAMMARYY) $(MAINOBJ) $(OBJS)
 #	@if [ ! -e blib ]; then mkdir blib; fi
 #	@echo\
 #		"(declare (unit build))\n"\

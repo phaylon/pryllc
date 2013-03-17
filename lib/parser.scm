@@ -35,6 +35,7 @@
          (OP_ASSIGN_SC     ($ (or "//=" "||=" "&&=")))
          (OP_COMPARE       ($ "<=>"))
          (OP_METHOD_REF    ($ ".&"))
+         (OP_NETHER_CALL   ($ ".^"))
          (OP_TERN_THEN     ($ "??"))
          (OP_TERN_ELSE     ($ "!!"))
          (OP_H_OR          ($ "||"))
