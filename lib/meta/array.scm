@@ -10,7 +10,8 @@
               name: "set"
               code: (lambda (pos nam)
                       (set! (p/array-ref (car pos) (cadr pos))
-                        (caddr pos))))
+                        (caddr pos))
+                      (caddr pos)))
             (mop/method
               name: "get"
               code: (lambda (pos nam)

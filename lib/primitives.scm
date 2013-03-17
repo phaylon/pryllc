@@ -27,6 +27,22 @@
   (assert-type integer? <pryll:meta-integer> value))
 
 ;;
+;; hashes
+;;
+
+(define p/hash-ref
+  (getter-with-setter
+    (lambda (ht key)
+      (assert/hash ht)
+      (assert/string key)
+      (hash-table-ref/default ht key (void)))
+    (lambda (ht key new-value)
+      (assert/hash ht)
+      (assert/string key)
+      (hash-table-set! ht key new-value)
+      new-value)))
+
+;;
 ;; arrays
 ;;
 
@@ -73,4 +89,4 @@
           (set! (list-ref array index) new-value))
         (let ((neg-index (negative-index array index)))
           (set! (list-ref array neg-index) new-value)))
-      (void))))
+      new-value)))

@@ -17,6 +17,7 @@
     meta/number
     meta/string
     meta/array
+    meta/hash
     primitives
     ))
 
