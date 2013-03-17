@@ -32,16 +32,22 @@
   (let ((ast (source->ast source-name source-body)))
     (if (cli/option-exists? options 'dump-ast)
       (begin
-;        (display (pryll:invoke ast "debug-dump"))
         (pretty-print (pryll:invoke ast "debug-dump"))
-        (newline)
         (exit))
       ast)))
+
+(define (generate-code options ast)
+  (let ((code (ast->code ast)))
+    (if (cli/option-exists? options 'dump-scheme)
+      (begin
+        (pretty-print code)
+        (exit))
+      code)))
 
 (define (compile-pryll-expression options args)
   (let* ((expr (cli/option-value options 'eval))
          (ast  (generate-ast options "command line expression" expr))
-         (code (ast->code ast))
+         (code (generate-code options ast))
          (out  (if (cli/option-exists? options 'output)
                  (cli/option-value options 'output)
                  #f))
@@ -90,11 +96,12 @@
   (say "NYI"))
 
 (cli/parse
-  `(((eval e)     s "Evaluate expression")
-    ((dump-ast)   b "Dump the generated AST")
-    ((help h ?)   b "Display help")
-    ((run r)      b "Run program after compilation")
-    ((output o)   s "Output to file (defaults to pryll.out"))
+  `(((eval e)       s "Evaluate expression")
+    ((dump-ast)     b "Dump the generated AST")
+    ((dump-scheme)  b "Dump the generated Scheme code")
+    ((help h ?)     b "Display help")
+    ((run r)        b "Run program after compilation")
+    ((output o)     s "Output to file (defaults to pryll.out"))
   (lambda (opt args)
     (cond ((cli/option-exists? opt 'eval)
            (compile-pryll-expression opt args))

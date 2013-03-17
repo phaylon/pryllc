@@ -91,6 +91,8 @@
            ((value-is "err")                  'OP_L_ERR)
            ((value-is "cmp")                  'OP_COMPARE)
            ((value-is "lambda")               'SYN_LAMBDA)
+           ((value-is "my")                   'LEX_MY)
+           ((value-is "let")                  'LEX_LET)
            ((value-is-any op/equality/string) 'OP_EQUAL)
            (else type)))
     (else type)))

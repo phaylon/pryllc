@@ -336,6 +336,16 @@
             (attr/item "location")
             (attr/item "value"))
       (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                (let* ((name (pryll:object-data self "value"))
+                       (var (pryll:invoke
+                              ctx
+                              "find-variable"
+                              (list name))))
+                  (if var
+                    (pryll:invoke var "compile-access" (list ctx))
+                    (error "Unbound lexical variable" name)))))
             (dump-method
               (lambda (self)
                 `(lex ,(string->symbol
@@ -1046,6 +1056,9 @@
 ;; lambdas
 ;;
 
+(define-inline (compile-lambda location signature block)
+  23)
+
 (define <pryll:ast-lambda>
   (mop/init
     (mop/class name: "Core::AST::Lambda")
@@ -1055,6 +1068,12 @@
             (attr/item "signature")
             (attr/item "block"))
       (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                (compile-lambda
+                  (pryll:object-data self "location")
+                  (pryll:object-data self "signature")
+                  (pryll:object-data self "block"))))
             (dump-method
               (lambda (self)
                 `(lambda
@@ -1071,3 +1090,58 @@
               location:  (token-location token)
               signature: signature
               block:     block))
+
+;;
+;; lexical declarations
+;;
+
+(define-inline (compile-lexical-declarations ctx location declarations)
+  (let ((vars (map (lambda (decl)
+                     (let* ((lexvar (car decl))
+                            (init (and (= (length decl) 2) (cadr decl)))
+                            (var (compile/scoped-var
+                                   (pryll:invoke lexvar "value"))))
+                       (list var
+                             (pryll:invoke
+                               var
+                               "compile-declare"
+                               (list ctx init)))))
+                   declarations)))
+    (for-each (lambda (item)
+                (pryll:invoke
+                  ctx
+                  "add-variable"
+                  (list (car item))))
+              vars)
+    `(begin ,@(map cadr vars))))
+
+(define <pryll:ast-lexical-declarations>
+  (mop/init
+    (mop/class name: "Core::AST::Lexical::Declarations")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "declarations"))
+      (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                (compile-lexical-declarations
+                  ctx
+                  (pryll:object-data self "location")
+                  (pryll:object-data self "declarations"))))
+            (dump-method
+              (lambda (self)
+                `(my
+                   ,@(map (lambda (item)
+                            (if (= (length item) 1)
+                              (list (dump (car item)))
+                              (list (dump (car item))
+                                    '=
+                                    (dump (cadr item)))))
+                          (pryll:object-data self "declarations"))))))
+      (call finalize:))))
+
+(define (make-lexical-declarations op declarations)
+  (pryll:make <pryll:ast-lexical-declarations>
+              location:     (token-location op)
+              declarations: declarations))

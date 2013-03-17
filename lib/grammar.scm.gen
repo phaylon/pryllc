@@ -13,6 +13,7 @@
    QMARK
    SPLICE_ARRAY SPLICE_HASH
    SYN_LAMBDA
+   LEX_MY
    (left:  OP_L_OR OP_L_ERR)
    (left:  OP_L_AND)
    (right: OP_L_NOT)
@@ -27,8 +28,8 @@
    (left:  OP_H_MATH)
    (left:  OP_METHOD_CALL OP_METHOD_REF OP_NETHER_CALL)
    (left:  prec-slot)
-   (left:  OP_NAMESPACE)
    (right: prec-num-sign)
+   (left:  OP_NAMESPACE)
    )
 
   (document
@@ -37,13 +38,35 @@
         ()
             : (make-document '()))
 
+  (lexical-declarations
+        (lexical-variable OP_ASSIGN expression lexical-declarations-rest)
+            : (cons (list $1 $3) $4)
+        (lexical-variable lexical-declarations-rest)
+            : (cons (list $1) $2))
+
+  (lexical-declarations-rest
+        (COMMA lexical-declarations)
+            : $2
+        (COMMA)
+            : (list)
+        ()
+            : (list))
+
+  (block-declaration
+        (LEX_MY lexical-declarations)
+            : (make-lexical-declarations $1 $2))
+
   (statements
+        (block-declaration statements-rest)
+            : (cons $1 $2)
         (expression statements-rest)
             : (cons (make-statement $1) $2)
         ()
             : '())
 
   (statements-rest
+        (SEMICOLON block-declaration statements-rest)
+            : (cons $2 $3)
         (SEMICOLON expression statements-rest)
             : (cons (make-statement $2) $3)
         (SEMICOLON)

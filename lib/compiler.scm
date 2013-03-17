@@ -74,6 +74,48 @@
                expected: ,(type-meta type)
                received: (pryll:meta-for ,var-value))))))))
 
+(define <compiler-var/scope>
+  (mop/init
+    (mop/class name: "Core::AST::Compiler::Variable::Scoped")
+    (lambda (call)
+      (call add-attributes:
+            (mop/attribute
+              name:         "name"
+              reader:       "name"
+              init-arg:     "name"
+              is-required:  #t)
+            (mop/attribute
+              name:         "symbol"
+              reader:       "symbol"
+              default:      (lambda (pos nam)
+                              (compile/genvar
+                                (pryll:object-data (car pos) "name")))
+              is-lazy:      #t))
+      (call add-methods:
+            (mop/method
+              name: "compile-access"
+              code: (lambda (pos nam)
+                      (let* ((self (car pos))
+                             (var (pryll:invoke self "symbol")))
+                        var)))
+            (mop/method
+              name: "compile-declare"
+              code: (lambda (pos nam)
+                      (let* ((self (car pos))
+                             (ctx (cadr pos))
+                             (init (caddr pos))
+                             (var (pryll:invoke self "symbol")))
+                        `(define
+                           ,var
+                           ,(if init
+                              (pryll:invoke init "compile" (list ctx))
+                              `(void)))))))
+      (call finalize:))))
+
+(define (compile/scoped-var name)
+  (pryll:make <compiler-var/scope>
+              name: name))
+
 (define <context>
   (mop/init
     (mop/class name: "Core::AST::Compiler::Context")
@@ -86,6 +128,30 @@
             (mop/attribute
               name:       "variables"
               default:    (lambda args (mkhash))))
+      (call add-methods:
+            (mop/method
+              name: "find-variable"
+              code: (unwrap-pos-args
+                      (lambda (self name)
+                        (let ((vars (pryll:object-data self "variables"))
+                              (parent (pryll:object-data self "parent")))
+                          (if (hash-table-exists? vars name)
+                            (hash-table-ref vars name)
+                            (if (not-void? parent)
+                              (pryll:invoke
+                                parent
+                                "find-variable"
+                                (list name))
+                              #f))))))
+            (mop/method
+              name: "add-variable"
+              code: (unwrap-pos-args
+                      (lambda (self var)
+                        (let ((vars (pryll:object-data self "variables"))
+                              (name (pryll:invoke var "name")))
+                          (if (hash-table-exists? vars name)
+                            (error "Illegal redeclaration of variable")
+                            (hash-table-set! vars name var)))))))
       (call finalize:))))
 
 (define (ast->code ast)
