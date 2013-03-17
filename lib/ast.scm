@@ -1020,7 +1020,6 @@
                         `(type ,(dump type))
                         'no-type))
                    ,(let ((default (pryll:object-data self "default")))
-                      (say "DEFAULT " default)
                       (if default
                         `(default ,(dump default))
                         'no-default))
@@ -1068,6 +1067,50 @@
               is-optional:  (or default optional)
               default:      default))
 
+(define <pryll:ast-signature-rest-pos>
+  (mop/init
+    (mop/class name: "Core::AST::Signature::Rest::Positional")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "variable"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(positional-rest
+                   ,(dump-slot self "variable")))))
+      (call finalize:))))
+
+(define (make-signature-rest-pos token variable)
+  (pryll:make <pryll:ast-signature-rest-pos>
+              location: (token-location token)
+              variable: variable))
+
+(define <pryll:ast-signature-rest-nam>
+  (mop/init
+    (mop/class name: "Core::AST::Signature::Rest::Named")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "variable"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(named-rest
+                   ,(dump-slot self "variable")))))
+      (call finalize:))))
+
+(define (make-signature-rest-nam token variable)
+  (pryll:make <pryll:ast-signature-rest-nam>
+              location: (token-location token)
+              variable: variable))
+
+(define-inline (positional-rest? value)
+  (pryll:isa? value <pryll:ast-signature-rest-pos>))
+
+(define-inline (named-rest? value)
+  (pryll:isa? value <pryll:ast-signature-rest-nam>))
+
 (define-inline (named-param? value)
   (pryll:isa? value <pryll:ast-signature-param-nam>))
 
@@ -1081,7 +1124,7 @@
         (filter (lambda (item)
                   (if (positional-param? item)
                     #t
-                    (if (array-splice? item)
+                    (if (positional-rest? item)
                       (cont #f)
                       #f)))
                 (pryll:object-data self "parameters"))))))
@@ -1110,17 +1153,6 @@
   (define (compile-pos left index)
     (if (null? left)
       '()
-;      (if rest
-;        (let ((var (compile/scoped-var
-;                     (pryll:invoke
-;                       (pryll:invoke rest "variable")
-;                       "value"))))
-;          (pryll:invoke ctx "add-variable" (list var))
-;          (list
-;            (pryll:invoke var "symbol")
-;            `(if (> ,index (- (length ,src-var) 1))
-;               (list)
-;               (list-tail ,src-var ,index)))))
       (let* ((param (car left))
              (default (pryll:invoke param "default"))
              (var (compile/scoped-var
@@ -1139,7 +1171,6 @@
               (compile-pos (cdr left) (+ index 1))))))
   (let* ((params (pryll:object-data self "parameters"))
          (pos (filter positional-param? params)))
-;         (rest (filter array-splice? params)))
     ;; TODO sanity checks
     (append
       (compile-pos pos 0))))
@@ -1167,6 +1198,50 @@
              spec))
          nam)))
 
+(define-inline (signature-declare-rest-pos self ctx src-var)
+  (let* ((params (pryll:object-data self "parameters"))
+         (pos-cnt (length (filter positional-param? params)))
+         (rest (filter positional-rest? params)))
+    (say "REST " rest)
+    (if (= 0 (length rest))
+      (list)
+      (let* ((rest-param (car rest))
+             (lexvar (pryll:invoke rest-param "variable"))
+             (var (compile/scoped-var
+                    (pryll:invoke lexvar "value"))))
+        (say "VAR " var)
+        (pryll:invoke ctx "add-variable" (list var))
+        (list
+          (list (pryll:invoke var "symbol")
+                `(if (> (length ,src-var) ,pos-cnt)
+                   (list-tail ,src-var ,pos-cnt)
+                   (list))))))))
+
+(define-inline (signature-declare-rest-nam self ctx src-var)
+  (let* ((params (pryll:object-data self "parameters"))
+         (known (map (lambda (param)
+                       (pryll:invoke
+                         (pryll:invoke param "variable")
+                         "identifier"))
+                     (filter named-param? params)))
+         (rest (filter named-rest? params)))
+    (if (= 0 (length rest))
+      (list)
+      (let* ((rest-param (car rest))
+             (lexvar (pryll:invoke rest-param "variable"))
+             (var-pair (compile/genvar 'pair))
+             (var (compile/scoped-var
+                    (pryll:invoke lexvar "value"))))
+        (pryll:invoke ctx "add-variable" (list var))
+        (list
+          (list (pryll:invoke var "symbol")
+                `(alist->hash-table
+                   (filter (lambda (,var-pair)
+                             (not (contains-str
+                                    (list ,@known)
+                                    (car ,var-pair))))
+                           (hash-table->alist ,src-var)))))))))
+
 (define (compile-signature-scope self ctx var-pos var-nam block)
   (let ((var-key (compile/genvar 'key))
         (pos-min (min-positionals self))
@@ -1190,7 +1265,9 @@
            '())
        (let ,(append
                (signature-declare-pos self subctx var-pos)
-               (signature-declare-nam self subctx var-nam))
+               (signature-declare-nam self subctx var-nam)
+               (signature-declare-rest-pos self subctx var-pos)
+               (signature-declare-rest-nam self subctx var-nam))
          ,(compile subctx block)))))
 
 (define <pryll:ast-signature>

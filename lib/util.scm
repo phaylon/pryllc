@@ -22,6 +22,13 @@
 
 (define (phash-has hash slot)
   (hash-table-exists? hash (->string slot)))
+  
+(define (contains-str ls value)
+  (if (null? ls)
+    #f
+    (if (string=? (car ls) value)
+      #t
+      (contains (cdr ls) value))))
 
 (define phash-slot
   (getter-with-setter
