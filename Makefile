@@ -19,6 +19,7 @@ clean:
 #	rm -f $(BUILDOBJ)
 	rm -f $(MAINOBJ)
 	rm -f .pryll.*
+	rm -f $(GRAMMARYY)
 #	rmdir blib
 
 test: force
@@ -27,7 +28,7 @@ test: force
 
 $(GRAMMARYY): $(GRAMMARSCM)
 	csi -s $(GRAMMARSCM)
-	rm -f lib/parser.o
+	@rm -f lib/parser.o
 
 $(PROGRAM): $(GRAMMARYY) $(MAINOBJ) $(OBJS)
 #	@if [ ! -e blib ]; then mkdir blib; fi
