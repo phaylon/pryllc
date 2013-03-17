@@ -236,6 +236,17 @@
             <pryll:role-throwable-stacktrace>)
       (call finalize:))))
 
+(define <pryll:error-arguments>
+  (mop/init
+    (mop/class name: "Error::Arguments")
+    (lambda (call)
+      (call add-roles:
+            <pryll:role-throwable>
+            <pryll:role-throwable-message>
+            <pryll:role-throwable-location>
+            <pryll:role-throwable-stacktrace>)
+      (call finalize:))))
+
 (define <pryll:error-syntax>
   (mop/init
     (mop/class name: "Error::Syntax")

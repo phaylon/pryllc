@@ -1202,7 +1202,6 @@
   (let* ((params (pryll:object-data self "parameters"))
          (pos-cnt (length (filter positional-param? params)))
          (rest (filter positional-rest? params)))
-    (say "REST " rest)
     (if (= 0 (length rest))
       (list)
       (let* ((rest-param (car rest))
@@ -1242,20 +1241,51 @@
                                     (car ,var-pair))))
                            (hash-table->alist ,src-var)))))))))
 
+(define-inline (all-named self)
+  (map (lambda (param)
+         (pryll:invoke (pryll:invoke param "variable") "identifier"))
+       (filter named-param? (pryll:invoke self "parameters"))))
+
+(define-inline (has-named-rest self)
+  (< 0 (length (filter named-rest? (pryll:invoke self "parameters")))))
+
 (define (compile-signature-scope self ctx var-pos var-nam block)
   (let ((var-key (compile/genvar 'key))
+        (var-unknown (compile/genvar 'missing))
         (pos-min (min-positionals self))
         (pos-max (max-positionals self))
         (nam-req (named-required self))
+        (nam-known (all-named self))
+        (nam-rest (has-named-rest self))
         (subctx  (subcontext ctx)))
     `(begin
-       ,@(if pos-min
+       ,@(if (and pos-min (> pos-min 0))
            `((if (< (length ,var-pos) ,pos-min)
-               (error "Not enough arguments")))
+               (pryll:err
+                 <pryll:error-arguments>
+                 message:
+                 (conc
+                   ,(conc
+                      "Expected at least "
+                      pos-min
+                      " positional "
+                      (if (= pos-min 1) "argument" "arguments")
+                      ", but only received ")
+                   (length ,var-pos)))))
            '())
        ,@(if pos-max
            `((if (> (length ,var-pos) ,pos-max)
-               (error "Too many arguments")))
+               (pryll:err
+                 <pryll:error-arguments>
+                 message:
+                 (conc
+                   ,(conc
+                      "Expected at most "
+                      pos-max
+                      " positional "
+                      (if (= pos-max 1) "argument" "arguments")
+                      ", but received ")
+                   (length ,var-pos)))))
            '())
        ,@(if (> (length nam-req) 0)
            `((for-each (lambda (,var-key)
@@ -1263,6 +1293,13 @@
                            (error "Missing named argument" ,var-key)))
                        (list ,@nam-req)))
            '())
+       ,@(if nam-rest
+           '()
+           `((let ((,var-unknown (str-unknown
+                                   (list ,@nam-known)
+                                   (hash-table-keys ,var-nam))))
+               (if (< 0 (length ,var-unknown))
+                 (error "Unknown named args" ,var-unknown)))))
        (let ,(append
                (signature-declare-pos self subctx var-pos)
                (signature-declare-nam self subctx var-nam)
