@@ -1208,7 +1208,6 @@
              (lexvar (pryll:invoke rest-param "variable"))
              (var (compile/scoped-var
                     (pryll:invoke lexvar "value"))))
-        (say "VAR " var)
         (pryll:invoke ctx "add-variable" (list var))
         (list
           (list (pryll:invoke var "symbol")
