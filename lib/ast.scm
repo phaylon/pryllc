@@ -921,3 +921,153 @@
               location:   (token-location token)
               expression: expr))
 
+;;
+;; blocks
+;;
+
+(define <pryll:ast-block>
+  (mop/init
+    (mop/class name: "Core::AST::Block")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "statements"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(block
+                   ,@(map dump (pryll:object-data self "statements"))))))
+      (call finalize:))))
+
+(define (make-block statements)
+  (pryll:make <pryll:ast-block>
+              statements: statements))
+
+;;
+;; namespaces
+;;
+
+(define <pryll:ast-namespace>
+  (mop/init
+    (mop/class name: "Core::AST::Namespace")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "value"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(ns ,(pryll:object-data self "value")))))
+      (call finalize:))))
+
+(define (make-namespace elements)
+  (pryll:make <pryll:ast-namespace>
+              location: (token-location (car elements))
+              value:    (string-join
+                          (map token-value elements)
+                          "::")))
+
+;;
+;; signatures
+;;
+
+(define <pryll:ast-signature-param-pos>
+  (mop/init
+    (mop/class name: "Core::AST::Signature::Parameter::Positional")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "type")
+            (attr/item "variable")
+            (attr/item "is-optional"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(positional
+                   ,(dump-slot self "variable")
+                   ,(let ((type (pryll:object-data self "type")))
+                      (if type
+                        `(type ,(dump type))
+                        'no-type))
+                   ,(let ((opt (pryll:object-data self "is-optional")))
+                      (if opt 'is-optional 'is-required))))))
+      (call finalize:))))
+
+(define (make-signature-param-pos type var optional)
+  (pryll:make <pryll:ast-signature-param-pos>
+              type:         type
+              variable:     var
+              is-optional:  optional))
+
+(define <pryll:ast-signature-param-nam>
+  (mop/init
+    (mop/class name: "Core::AST::Signature::Parameter::Named")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "type")
+            (attr/item "variable")
+            (attr/item "is-optional"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(named
+                   ,(dump-slot self "variable")
+                   ,(let ((type (pryll:object-data self "type")))
+                      (if type
+                        `(type ,(dump type))
+                        'no-type))
+                   ,(let ((opt (pryll:object-data self "is-optional")))
+                      (if opt 'is-optional 'is-required))))))
+      (call finalize:))))
+
+(define (make-signature-param-nam type var optional)
+  (pryll:make <pryll:ast-signature-param-nam>
+              type:         type
+              variable:     var
+              is-optional:  optional))
+
+
+(define <pryll:ast-signature>
+  (mop/init
+    (mop/class name: "Core::AST::Signature")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "parameters"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(signature
+                   ,@(map dump (pryll:object-data self "parameters"))))))
+      (call finalize:))))
+
+(define (make-signature parameters)
+  (pryll:make <pryll:ast-signature>
+              parameters: parameters))
+
+;;
+;; lambdas
+;;
+
+(define <pryll:ast-lambda>
+  (mop/init
+    (mop/class name: "Core::AST::Lambda")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "signature")
+            (attr/item "block"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(lambda
+                   ,(let ((signature
+                            (pryll:object-data self "signature")))
+                      (if signature
+                        (dump signature)
+                        'no-signature))
+                   ,(dump-slot self "block")))))
+      (call finalize:))))
+
+(define (make-lambda token signature block)
+  (pryll:make <pryll:ast-lambda>
+              location:  (token-location token)
+              signature: signature
+              block:     block))

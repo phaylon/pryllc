@@ -12,8 +12,8 @@
 
 (define digits '(+ (/ "09")))
 (define bareword
-  '(: (+ (or (/ "az") "_"))
-      (* (or (/ "az") (/ "09") "_" "-"))))
+  '(: (+ (or (/ "az") (/ "AZ") "_"))
+      (* (or (/ "az") (/ "AZ") (/ "09") "_" "-"))))
 (define opword
   '(+ ("+-*/=<>~|&?!@%")))
 (define lexvar
@@ -42,6 +42,7 @@
          (OP_H_ERR         ($ "//"))
          (OP_H_AND         ($ "&&"))
          (OP_COMPARE       ($ "~~"))
+         (OP_NAMESPACE     ($ "::"))
          (OP_ASSIGN_SC     ($ (or "+=" "-=" "*=" "/=" "~=")))
          (OP_EQUAL         ($ (or ">=" "<=" "==" "!=")))
          (OP_EQUAL         ($ (or ">" "<")))
@@ -55,7 +56,7 @@
          (OP_METHOD_CALL   ($ "."))
          (QMARK            ($ "?"))
          (EMARK            ($ "!"))
-         (OPWORD           ($ ,opword))
+;         (OPWORD           ($ ,opword))
          (FLOAT            ($ ,digits "." ,digits))
          (INT              ($ ,digits))
          (COLON            ($ ":"))
@@ -89,6 +90,7 @@
            ((value-is "not")                  'OP_L_NOT)
            ((value-is "err")                  'OP_L_ERR)
            ((value-is "cmp")                  'OP_COMPARE)
+           ((value-is "lambda")               'SYN_LAMBDA)
            ((value-is-any op/equality/string) 'OP_EQUAL)
            (else type)))
     (else type)))

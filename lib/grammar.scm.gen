@@ -12,6 +12,7 @@
    BRACE_L   BRACE_R
    QMARK
    SPLICE_ARRAY SPLICE_HASH
+   SYN_LAMBDA
    (left:  OP_L_OR OP_L_ERR)
    (left:  OP_L_AND)
    (right: OP_L_NOT)
@@ -26,6 +27,7 @@
    (left:  OP_H_MATH)
    (left:  OP_METHOD_CALL OP_METHOD_REF OP_NETHER_CALL)
    (left:  prec-slot)
+   (left:  OP_NAMESPACE)
    (right: prec-num-sign)
    )
 
@@ -155,6 +157,73 @@
         (expression BRACKET_L expression BRACKET_R)
             : (make-slot-ref $2 $1 $3))
 
+  (block
+        (BRACE_L statements BRACE_R)
+            : (make-block $2))
+
+  (parameters
+        (parameter parameters-rest)
+            : (cons $1 $2)
+        ()
+            : (list))
+
+  (parameters-rest
+        (COMMA parameter parameters-rest)
+            : (cons $2 $3)
+        (COMMA)
+            : (list)
+        ()
+            : (list))
+
+  (parameter
+        (parameter-named)
+            : $1
+        (parameter-positional)
+            : $1
+        (parameter-rest)
+            : $1)
+
+  (namespace
+        (BAREWORD namespace-rest)
+            : (make-namespace (cons $1 $2)))
+
+  (namespace-rest
+        (OP_NAMESPACE BAREWORD namespace-rest)
+            : (cons $2 $3)
+        ()
+            : (list))
+
+  (parameter-type
+        (namespace)
+            : $1
+        ()
+            : #f)
+
+  (parameter-positional
+        (parameter-type
+         lexical-variable
+         opt-qmark)
+            : (make-signature-param-pos $1 $2 $3))
+
+  (parameter-named
+        (parameter-type
+         COLON
+         lexical-variable
+         opt-qmark)
+            : (make-signature-param-nam $1 $3 $4))
+
+  (parameter-rest
+        (splice-array)
+            : $1
+        (splice-hash)
+            : $1)
+
+  (signature
+        (PARENS_L parameters PARENS_R)
+            : (make-signature $2)
+        ()
+            : #f)
+
   (expression
         (atom)
             : $1
@@ -162,6 +231,8 @@
             : $1
         (expression BRACKET_L expression BRACKET_R)
             : (make-slot-ref $2 $1 $3)
+        (SYN_LAMBDA signature block)
+            : (make-lambda $1 $2 $3)
         (expression
          OP_METHOD_REF
          method

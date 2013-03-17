@@ -28,9 +28,19 @@
 (define (get-pryll-root)
   "./")
 
+(define (generate-ast options source-name source-body)
+  (let ((ast (source->ast source-name source-body)))
+    (if (cli/option-exists? options 'dump-ast)
+      (begin
+;        (display (pryll:invoke ast "debug-dump"))
+        (pretty-print (pryll:invoke ast "debug-dump"))
+        (newline)
+        (exit))
+      ast)))
+
 (define (compile-pryll-expression options args)
   (let* ((expr (cli/option-value options 'eval))
-         (ast  (source->ast "command line expression" expr))
+         (ast  (generate-ast options "command line expression" expr))
          (code (ast->code ast))
          (out  (if (cli/option-exists? options 'output)
                  (cli/option-value options 'output)
@@ -81,6 +91,7 @@
 
 (cli/parse
   `(((eval e)     s "Evaluate expression")
+    ((dump-ast)   b "Dump the generated AST")
     ((help h ?)   b "Display help")
     ((run r)      b "Run program after compilation")
     ((output o)   s "Output to file (defaults to pryll.out"))
