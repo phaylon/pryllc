@@ -962,10 +962,9 @@
       (call add-methods:
             (compile-method
               (lambda (self ctx)
-                `(begin
-                   ,@(map (lambda (item)
-                            (compile ctx item))
-                          (pryll:object-data self "statements")))))
+                (compile/statements
+                  ctx
+                  (pryll:object-data self "statements"))))
             (dump-method
               (lambda (self)
                 `(block
@@ -1340,12 +1339,14 @@
         (var-none (compile/genvar 'none)))
     (if signature
       `(lambda (,var-pos ,var-nam)
+         (void)
          ,(pryll:invoke
             signature
             "compile-scope"
             (list ctx var-pos var-nam block)))
       (let ((subctx (subcontext ctx)))
         `(lambda ,var-none
+           (void)
            ,(compile subctx block))))))         
 
 (define <pryll:ast-lambda>
@@ -1404,7 +1405,9 @@
                   "prepare-variable"
                   (list (car item))))
               vars)
-    `(begin ,@(map cadr vars))))
+    `(begin
+       ,@(map cadr vars)
+       ,(pryll:invoke (caar vars) "symbol"))))
 
 (define <pryll:ast-lexical-declarations>
   (mop/init
