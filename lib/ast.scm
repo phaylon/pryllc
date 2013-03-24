@@ -504,6 +504,15 @@
             (attr/item "method")
             (attr/item "arguments"))
       (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(nether-call
+                   ,@(if (pryll:invoke self "is-chained")
+                       '(chained)
+                       '())
+                   ,(dump-slot self "invocant")
+                   ,(dump-slot self "method")
+                   ,(dump-slot self "arguments"))))
             (compile-method
               (lambda (self ctx)
                 (let* ((method (pryll:object-data
@@ -1591,3 +1600,22 @@
               block:        block
               else:         tail))
               
+(define <pryll:ast-return>
+  (mop/init
+    (mop/class name: "Core::AST::Return")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "expression"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(return ,(dump-slot self "expression")))))
+      (call finalize:))))
+
+(define (make-return op expr)
+  (pryll:make <pryll:ast-return>
+              location:     (token-location op)
+              expression:   expr))
+
+

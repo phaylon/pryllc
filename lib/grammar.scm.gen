@@ -21,6 +21,7 @@
    COND_ELSE
    (left:  OP_L_OR OP_L_ERR)
    (left:  OP_L_AND)
+   (right: OP_RETURN)
    (right: OP_L_NOT)
    (right: OP_ASSIGN OP_ASSIGN_SC)
    (right: OP_TERN_THEN OP_TERN_ELSE)
@@ -376,6 +377,8 @@
             : $1
         (block-declaration)
             : $1
+        (OP_RETURN expression)
+            : (make-return $1 $2)
         (expression
          OP_METHOD_REF
          method

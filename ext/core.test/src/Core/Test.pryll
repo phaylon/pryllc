@@ -1,13 +1,4 @@
 
-# TODO
-# comments
-# equals operator
-# subs
-# if conditions
-# returning
-# type checks in signatures
-# .^gist
-
 module Core::Test {
 
     my $test-count = 0;

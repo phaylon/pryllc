@@ -45,9 +45,9 @@
         (exit))
       code)))
 
-(define (compile-pryll-expression options args)
-  (let* ((expr (cli/option-value options 'eval))
-         (ast  (generate-ast options "command line expression" expr))
+(define (compile-pryll-code options src-code src-name args)
+  (let* ((expr src-code)
+         (ast  (generate-ast options src-name expr))
          (code (generate-code options ast))
          (out  (if (cli/option-exists? options 'output)
                  (cli/option-value options 'output)
@@ -56,9 +56,6 @@
          (name (or out (conc ".pryll." (current-process-id))))
          (scm  (conc name ".scm"))
          (scmo (conc name ".o")))
-;    (say "CODE")
-;    (say code)
-;    (say "---")
     (with-output-to-file
       scm
       (lambda ()
@@ -93,8 +90,20 @@
     (process-execute (conc "./" name) args)
     ))
 
+(define (compile-pryll-expression options args)
+  (let ((expr (cli/option-value options 'eval)))
+    (compile-pryll-code
+      options
+      expr
+      "command line expression"
+      args)))
+
 (define (compile-pryll-file options args)
-  (say "NYI"))
+  (compile-pryll-code
+    options
+    (read-all (car args))
+    (car args)
+    (cdr args)))
 
 (cli/parse
   `(((eval e)       s "Evaluate expression")

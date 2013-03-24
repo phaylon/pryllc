@@ -5,6 +5,7 @@
 (import srfi-1 srfi-13)
 (import chicken)
 (require-extension srfi-1 srfi-13 srfi-69 lalr-driver irregex)
+(require-extension data-structures)
 
 (include "lib/grammar.scm.yy")
 
@@ -27,7 +28,7 @@
   (map (lambda (token)
          (list (car token)
                (sre->irregex `(: bos ,(cadr token)))))
-       `((DISCARD          whitespace)
+       `((DISCARD          (+ whitespace))
          (DISCARD          (: "#" (*? any) eol))
          (LEXVAR           ($ ,lexvar))
          (BAREWORD         ($ ,bareword))
@@ -113,6 +114,7 @@
            ((value-is "with")                 'DECLARE_ROLE_APPLY)
            ((value-is "role")                 'DECLARE_ROLE)
            ((value-is "requires")             'DECLARE_REQUIRES)
+           ((value-is "return")               'OP_RETURN)
            ((value-is "has")                  'DECLARE_ATTRIBUTE)
            ((value-is "my")                   'LEX_MY)
            ((value-is "let")                  'LEX_LET)
@@ -144,10 +146,12 @@
     (let ((original body))
       (lambda ()
         (let* ((removed (irregex-replace `(: ,body eos) original ""))
-               (lines   (unempty (irregex-split 'newline removed)))
+               (lines   (string-split removed "\n" #t))
+;               (lines   (unempty (irregex-split 'newline removed)))
                (last    (car (reverse lines)))
                (lnum    (length lines))
                (cnum    (+ 1 (string-length last))))
+;          (say "LINES " (map list lines))
           `(,name ,lnum ,cnum)))))
   (define (next-token patterns)
     (if (zero? (string-length body))
@@ -180,6 +184,12 @@
     (if (zero? (string-length body))
       '*eoi*
       (let ((found (next-token token-patterns)))
+;        (say
+;          "found "
+;          (lexical-token-category found)
+;          " "
+;          (get-location)
+;          )
         found))))
 
 (define (source->ast name body)
