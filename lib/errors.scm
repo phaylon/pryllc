@@ -135,6 +135,35 @@
                                              (pryll:meta-for self))
                                            "> exception"))))))))))
 
+(define <pryll:error-undeclared>
+  (mop/init
+    (mop/class name: "Error::Undeclared")
+    (lambda (call)
+      (call add-attributes:
+            (mop/attribute
+              name:         "type"
+              init-arg:     "type"
+              reader:       "type"
+              is-required:  #t)
+            (mop/attribute
+              name:         "name"
+              init-arg:     "name"
+              reader:       "name"
+              is-required:  #t))
+      (call add-methods:
+            (mop/method
+              name: "get-message"
+              code: (lambda (pos nam)
+                      (let* ((self (car pos))
+                             (type (pryll:object-data self "type"))
+                             (name (pryll:object-data self "name")))
+                        (conc "Invalid use of undeclared "
+                              type
+                              " '"
+                              name
+                              "'")))))
+      (call finalize:))))
+
 (define <pryll:error-type>
   (mop/init
     (mop/class name: "Error::Type")

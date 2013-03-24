@@ -3,6 +3,17 @@
 
 (import chicken scheme)
 
+(define-inline (compile-sub self ctx)
+  (let* ((name (pryll:object-data self "name")))
+    `(set! ,(pryll:invoke ctx "find-callable" (list name))
+       ,(compile
+          ctx
+          (pryll:make
+            <pryll:ast-lambda>
+            location:  (pryll:object-data self "location")
+            signature: (pryll:object-data self "signature")
+            block:     (pryll:object-data self "block"))))))
+
 (define <pryll:ast-subroutine>
   (mop/init
     (mop/class name: "Core::AST::Subroutine")
@@ -14,6 +25,9 @@
             (attr/item "traits")
             (attr/item "block"))
       (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                (compile-sub self ctx)))
             (dump-method
               (lambda (self)
                 `(sub

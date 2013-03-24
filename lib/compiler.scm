@@ -129,8 +129,17 @@
               name:     name
               location: (or loc (void))))
 
+(define-inline (declaration? item)
+  (pryll:isa? item <pryll:ast-subroutine>))
+
 (define (compile/statements ctx seq)
   `(begin
+     ,@(filter (lambda (item) item)
+               (map (lambda (item)
+                      (if (declaration? item)
+                        (pryll:invoke ctx "predeclare" (list item))
+                        #f))
+                    seq))
      ,@(map (lambda (item)
               (let ((code (pryll:invoke item "compile" (list ctx))))
                 (pryll:invoke ctx "commit-variables")
@@ -151,6 +160,28 @@
                  location: loc
                  message:  (conc "Illegal redeclaration of variable "
                                  name)))))
+
+(define-inline (callable-type ast)
+  (cond ((pryll:isa? ast <pryll:ast-subroutine>)
+         "subroutine")
+        ((pryll:isa? ast <pryll:ast-function>)
+         "function")
+        (else (error "Unexpected callable type"))))
+
+(define (ensure-new-callable self ast)
+  (let* ((name (pryll:invoke ast "name"))
+         (loc (pryll:invoke ast "location"))
+         (known (or (hash-table-exists?
+                      (pryll:object-data self "callables")
+                      name))))
+    (if known
+      (pryll:err <pryll:error-syntax>
+                 location: loc
+                 message:  (conc "Illegal redeclaration of "
+                                 (callable-type ast)
+                                 " '"
+                                 name
+                                 "'")))))
 
 (define-inline (call-parent self method . args)
   (let ((parent (pryll:object-data self "parent")))
@@ -175,9 +206,36 @@
               reader:     "return"
               writer:     "set-return")
             (mop/attribute
+              name:       "callables"
+              default:    (lambda args (mkhash)))
+            (mop/attribute
               name:       "variables"
               default:    (lambda args (mkhash))))
       (call add-methods:
+            (mop/method
+              name: "predeclare"
+              code: (unwrap-pos-args
+                      (lambda (self ast)
+                        (let* ((name (pryll:invoke ast "name"))
+                               (var (compile/genvar name))
+                               (var-none (compile/genvar 'none)))
+                          (ensure-new-callable self ast)
+                          (hash-table-set!
+                            (pryll:object-data self "callables")
+                            name
+                            var)
+                          `(define ,var (void))))))
+            (mop/method
+              name: "find-callable"
+              code: (unwrap-pos-args
+                      (lambda (self name)
+                        (if (hash-table-exists?
+                              (pryll:object-data self "callables")
+                              name)
+                          (hash-table-ref
+                            (pryll:object-data self "callables")
+                            name)
+                          (call-parent self "find-callable" name)))))
             (mop/method
               name: "find-return"
               code: (unwrap-pos-args
