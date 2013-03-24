@@ -13,15 +13,21 @@
    QMARK
    SPLICE_ARRAY SPLICE_HASH
    SYN_LAMBDA
+   DECLARE_MODULE
+   DECLARE_FUNCTION
+   DECLARE_SUB
    LEX_MY
+   COND_TEST
+   COND_ELSE
    (left:  OP_L_OR OP_L_ERR)
    (left:  OP_L_AND)
    (right: OP_L_NOT)
    (right: OP_ASSIGN OP_ASSIGN_SC)
    (right: OP_TERN_THEN OP_TERN_ELSE)
+   (left:  OP_DOES)
    (left:  OP_H_OR OP_H_ERR)
    (left:  OP_H_AND)
-   (left:  OP_EQUAL OP_COMPARE)
+   (left:  OP_EQUAL_NUM OP_EQUAL_STR OP_EQUAL_ANY OP_COMPARE)
    (right: EMARK)
    (left:  OP_CONCAT)
    (left:  OP_PLUS OP_MINUS)
@@ -33,7 +39,7 @@
    )
 
   (document
-        (statements)
+        (statements/top)
             : (make-document $1)
         ()
             : (make-document '()))
@@ -53,32 +59,112 @@
             : (list))
 
   (block-declaration
-        (LEX_MY lexical-declarations)
-            : (make-lexical-declarations $1 $2))
+        (LEX_MY PARENS_L lexical-declarations PARENS_R)
+            : (make-lexical-declarations $1 $3)
+        (LEX_MY lexical-variable OP_ASSIGN expression)
+            : (make-lexical-declarations $1 (list (list $2 $4)))
+        (LEX_MY lexical-variable)
+            : (make-lexical-declarations $1 (list (list $2))))
 
-  (statements
-        (block-declaration statements-rest)
+  (statements/module
+;        (block-declaration SEMICOLON statements/module)
+;            : (cons $1 $3)
+        (declare-function statements/module)
             : (cons $1 $2)
-        (expression statements-rest)
-            : (cons (make-statement $1) $2)
+        (declare-sub statements/module)
+            : (cons $1 $2)
+        (expression SEMICOLON statements/module)
+            : (cons $1 $3)
+        (block-declaration)
+            : (list $1)
+        (expression)
+            : (list $1)
         ()
-            : '())
+            : (list))
 
-  (statements-rest
-        (SEMICOLON block-declaration statements-rest)
-            : (cons $2 $3)
-        (SEMICOLON expression statements-rest)
-            : (cons (make-statement $2) $3)
-        (SEMICOLON)
-            : '()
+  (statements/lambda
+;        (block-declaration SEMICOLON statements/lambda)
+;            : (cons $1 $3)
+        (expression SEMICOLON statements/lambda)
+            : (cons $1 $3)
+        (block-declaration)
+            : (list $1)
+        (expression)
+            : (list $1)
         ()
-            : '())
+            : (list))
+
+  (statements/top
+;        (block-declaration SEMICOLON statements/top)
+;            : (cons $1 $3)
+        (declare-module statements/top)
+            : (cons $1 $2)
+        (declare-sub statements/top)
+            : (cons $1 $2)
+        (expression SEMICOLON statements/top)
+            : (cons $1 $3)
+        (block-declaration)
+            : (list $1)
+        (expression)
+            : (list $1)
+        ()
+            : (list))
+
+  (declare-function
+        (DECLARE_FUNCTION identifier-lax signature traits block/lambda)
+            : (make-function $1 $2 $3 $4 $5))
+
+  (declare-sub
+        (DECLARE_SUB identifier-lax signature traits block/lambda)
+            : (make-subroutine $1 $2 $3 $4 $5))
+
+  (traits
+        (OP_DOES trait-list)
+            : $2
+        ()
+            : (list))
+
+  (trait-list
+        (namespace arguments COMMA trait-list)
+            : (cons (make-trait $1 $2) $4)
+        (namespace arguments)
+            : (list (make-trait $1 $2)))
+
+  (declare-module
+        (DECLARE_MODULE namespace traits block/module)
+            : (make-module $1 $2 $3 $4))
+
+  (op-equal-binary-num
+        (op-equal-binary-num OP_EQUAL_NUM expression)
+            : (combine-equality-operations $2 $1 $3)
+        (expression OP_EQUAL_NUM expression)
+            : (make-equality-operations $2 $1 $3))
+
+  (op-equal-binary-any
+        (op-equal-binary-any OP_EQUAL_ANY expression)
+            : (combine-equality-operations $2 $1 $3)
+        (expression OP_EQUAL_ANY expression)
+            : (make-equality-operations $2 $1 $3))
+
+  (op-equal-binary-str
+        (op-equal-binary-str OP_EQUAL_STR expression)
+            : (combine-equality-operations $2 $1 $3)
+        (expression OP_EQUAL_STR expression)
+            : (make-equality-operations $2 $1 $3))
 
   (op-equal-binary
-        (op-equal-binary OP_EQUAL expression)
-            : (combine-equality-operations $2 $1 $3)
-        (expression OP_EQUAL expression)
-            : (make-equality-operations $2 $1 $3))
+        (op-equal-binary-str)
+            : $1
+        (op-equal-binary-num)
+            : $1
+        (op-equal-binary-any)
+            : $1)
+
+;  (op-equal-binary
+;        (op-equal-binary eq-op expression)
+;            : (combine-equality-operations $2 $1 $3)
+;        (expression eq-op expression)
+;            : (make-equality-operations $2 $1 $3))
 
   ; TODO split out identifier compare and equal ops
   (identifier-lax
@@ -180,8 +266,12 @@
         (expression BRACKET_L expression BRACKET_R)
             : (make-slot-ref $2 $1 $3))
 
-  (block
-        (BRACE_L statements BRACE_R)
+  (block/module
+        (BRACE_L statements/module BRACE_R)
+            : (make-block $2))
+
+  (block/lambda
+        (BRACE_L statements/lambda BRACE_R)
             : (make-block $2))
 
   (parameters
@@ -255,6 +345,24 @@
         ()
             : #f)
 
+  (conditional-tail
+        (COND_ELSE block/lambda)
+            : $2
+        (COND_ELSE conditional)
+            : $2
+        ()
+            : #f)
+
+  (conditional-expr
+        (expression)
+            : $1)
+;        (block-declaration)
+;            : $1)
+
+  (conditional
+        (COND_TEST conditional-expr block/lambda conditional-tail)
+            : (make-condition $1 $2 $3 $4))
+
   (expression
         (atom)
             : $1
@@ -262,8 +370,12 @@
             : $1
         (expression BRACKET_L expression BRACKET_R)
             : (make-slot-ref $2 $1 $3)
-        (SYN_LAMBDA signature block)
+        (SYN_LAMBDA signature block/lambda)
             : (make-lambda $1 $2 $3)
+        (conditional)
+            : $1
+        (block-declaration)
+            : $1
         (expression
          OP_METHOD_REF
          method

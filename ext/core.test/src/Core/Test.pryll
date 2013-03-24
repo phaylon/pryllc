@@ -1,0 +1,50 @@
+
+# TODO
+# comments
+# equals operator
+# subs
+# if conditions
+# returning
+# type checks in signatures
+# .^gist
+
+module Core::Test {
+
+    my $test-count = 0;
+
+    sub next-idx {
+        return $test-count += 1;
+    }
+
+    function diag(@$items) {
+        say(
+            '# ',
+            @$items.map(lambda ($item) {
+                return
+                    ($item ~~ String or $item ~~ Number)
+                    ?? $item
+                    !! $item.^gist;
+            }),
+            "\n",
+        );
+    }
+
+    function pass(String $title) {
+        say('ok ', next-idx(), ' - ', $title);
+    }
+
+    function fail(String $title) {
+        say('not ok ', next-idx(), ' - ', $title);
+    }
+
+    function is($received, $expected, String $title) {
+        if $received equals $expected {
+            pass($title);
+        }
+        else {
+            fail($title);
+            diag("Expected: ", $expected);
+            diag("Received: ", $received);
+        }
+    }
+}

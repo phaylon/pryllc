@@ -3,7 +3,7 @@
 
 (import chicken scheme)
 (require-extension srfi-1 srfi-13 srfi-69 data-structures)
-(define-constant DEBUG #f)
+(define-constant DEBUG (get-environment-variable "DEBUG"))
 
 (define (v-true? value)
   (and value (not (void? value))))

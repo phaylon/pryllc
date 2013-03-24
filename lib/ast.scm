@@ -97,11 +97,14 @@
       (call add-methods:
             (compile-method
               (lambda (self ctx)
-                `(begin
-                   ,@(map
-                       (lambda (stmt)
-                         (compile ctx stmt))
-                       (pryll:invoke self "statements")))))
+                (compile/statements
+                  ctx
+                  (pryll:invoke self "statements"))))
+;                `(begin
+;                   ,@(map
+;                       (lambda (stmt)
+;                         (compile ctx stmt))
+;                       (pryll:invoke self "statements")))))
             (dump-method
               (lambda (self)
                 `(doc ,(map dump
@@ -808,7 +811,7 @@
               code: (unwrap-pos-args compile-nam-args))
             (dump-method
               (lambda (self)
-                `(array
+                `(args
                    ,@(map dump
                           (pryll:invoke self "items"))))))
       (call finalize:))))
@@ -1387,7 +1390,8 @@
                      (let* ((lexvar (car decl))
                             (init (and (= (length decl) 2) (cadr decl)))
                             (var (compile/scoped-var
-                                   (pryll:invoke lexvar "value"))))
+                                   (pryll:invoke lexvar "value")
+                                   location)))
                        (list var
                              (pryll:invoke
                                var
@@ -1397,7 +1401,7 @@
     (for-each (lambda (item)
                 (pryll:invoke
                   ctx
-                  "add-variable"
+                  "prepare-variable"
                   (list (car item))))
               vars)
     `(begin ,@(map cadr vars))))
@@ -1432,3 +1436,155 @@
   (pryll:make <pryll:ast-lexical-declarations>
               location:     (token-location op)
               declarations: declarations))
+
+;;
+;; modules
+;;
+
+(define <pryll:ast-module>
+  (mop/init
+    (mop/class name: "Core::AST::Module")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "name")
+            (attr/item "traits")
+            (attr/item "block"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(module
+                   ,(dump-slot self "name")
+                   ,@(map dump (pryll:object-data self "traits"))
+                   ,(dump-slot self "block")))))
+      (call finalize:))))
+
+(define (make-module op name traits block)
+  (pryll:make <pryll:ast-module>
+              location: (token-location op)
+              traits:   traits
+              name:     name
+              block:    block))
+
+;;
+;; traits
+;;
+
+(define <pryll:ast-trait>
+  (mop/init
+    (mop/class name: "Core::AST::Trait")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "name")
+            (attr/item "arguments"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(trait
+                   ,(dump-slot self "name")
+                   ,(dump-slot self "arguments")))))
+      (call finalize:))))
+
+(define (make-trait name arguments)
+  (pryll:make <pryll:ast-trait>
+              name:         name
+              arguments:    arguments))
+
+;;
+;; functions
+;;
+
+(define <pryll:ast-function>
+  (mop/init
+    (mop/class name: "Core::AST::Function")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "name")
+            (attr/item "signature")
+            (attr/item "traits")
+            (attr/item "block"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(function
+                   ,(pryll:object-data self "name")
+                   ,(let ((s (pryll:object-data self "signature")))
+                      (if s (dump s) 'no-signature))
+                   ,@(map dump (pryll:object-data self "traits"))
+                   ,(dump-slot self "block")))))
+      (call finalize:))))
+
+(define (make-function op name signature traits block)
+  (pryll:make <pryll:ast-function>
+              location:     (token-location op)
+              name:         (pryll:invoke name "value")
+              signature:    signature
+              traits:       traits
+              block:        block))
+
+;;
+;; subroutines
+;;
+
+(define <pryll:ast-subroutine>
+  (mop/init
+    (mop/class name: "Core::AST::Subroutine")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "name")
+            (attr/item "signature")
+            (attr/item "traits")
+            (attr/item "block"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(sub
+                   ,(pryll:object-data self "name")
+                   ,(let ((s (pryll:object-data self "signature")))
+                      (if s (dump s) 'no-signature))
+                   ,@(map dump (pryll:object-data self "traits"))
+                   ,(dump-slot self "block")))))
+      (call finalize:))))
+
+(define (make-subroutine op name signature traits block)
+  (pryll:make <pryll:ast-subroutine>
+              location:     (token-location op)
+              name:         (pryll:invoke name "value")
+              signature:    signature
+              traits:       traits
+              block:        block))
+
+;;
+;; conditions
+;;
+
+(define <pryll:ast-condition>
+  (mop/init
+    (mop/class name: "Core::AST::Condition")
+    (lambda (call)
+      (call add-attributes:
+            (attr/item "location")
+            (attr/item "type")
+            (attr/item "condition")
+            (attr/item "block")
+            (attr/item "else"))
+      (call add-methods:
+            (dump-method
+              (lambda (self)
+                `(,(string->symbol (pryll:object-data self "type"))
+                   ,(dump-slot self "condition")
+                   (then ,(dump-slot self "block"))
+                   ,@(let ((e (pryll:object-data self "else")))
+                       (if e `((else ,(dump e))) '()))))))
+      (call finalize:))))
+
+(define (make-condition type condition block tail)
+  (pryll:make <pryll:ast-condition>
+              location:     (token-location type)
+              type:         (token-value type)
+              condition:    condition
+              block:        block
+              else:         tail))
+              

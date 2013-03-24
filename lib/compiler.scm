@@ -85,6 +85,10 @@
               init-arg:     "name"
               is-required:  #t)
             (mop/attribute
+              name:         "location"
+              reader:       "location"
+              init-arg:     "location")
+            (mop/attribute
               name:         "symbol"
               reader:       "symbol"
               default:      (lambda (pos nam)
@@ -112,9 +116,33 @@
                               `(void)))))))
       (call finalize:))))
 
-(define (compile/scoped-var name)
+(define (compile/scoped-var name #!optional loc)
   (pryll:make <compiler-var/scope>
-              name: name))
+              name:     name
+              location: (or loc (void))))
+
+(define (compile/statements ctx seq)
+  `(begin
+     ,@(map (lambda (item)
+              (let ((code (pryll:invoke item "compile" (list ctx))))
+                (pryll:invoke ctx "commit-variables")
+                code))
+            seq)))
+
+(define (ensure-new-var self var)
+  (let* ((name (pryll:invoke var "name"))
+         (loc (pryll:invoke var "location"))
+         (known (or (hash-table-exists?
+                      (pryll:object-data self "variables")
+                      name)
+                    (hash-table-exists?
+                      (pryll:object-data self "prepared")
+                      name))))
+    (if known
+      (pryll:err <pryll:error-syntax>
+                 location: loc
+                 message:  (conc "Illegal redeclaration of variable "
+                                 name)))))
 
 (define <context>
   (mop/init
@@ -125,6 +153,9 @@
               name:       "parent"
               reader:     "parent"
               init-arg:   "parent")
+            (mop/attribute
+              name:       "prepared"
+              default:    (lambda args (mkhash)))
             (mop/attribute
               name:       "variables"
               default:    (lambda args (mkhash))))
@@ -144,14 +175,32 @@
                                 (list name))
                               #f))))))
             (mop/method
+              name: "commit-variables"
+              code: (unwrap-pos-args
+                      (lambda (self)
+                        (hash-table-merge!
+                          (pryll:object-data self "variables")
+                          (pryll:object-data self "prepared"))
+                        (hash-table-clear!
+                          (pryll:object-data self "prepared")))))
+            (mop/method
+              name: "prepare-variable"
+              code: (unwrap-pos-args
+                      (lambda (self var)
+                        (ensure-new-var self var)
+                        (hash-table-set!
+                          (pryll:object-data self "prepared")
+                          (pryll:invoke var "name")
+                          var))))
+            (mop/method
               name: "add-variable"
               code: (unwrap-pos-args
                       (lambda (self var)
-                        (let ((vars (pryll:object-data self "variables"))
-                              (name (pryll:invoke var "name")))
-                          (if (hash-table-exists? vars name)
-                            (error "Illegal redeclaration of variable")
-                            (hash-table-set! vars name var)))))))
+                        (ensure-new-var self var)
+                        (hash-table-set!
+                          (pryll:object-data self "variables")
+                          (pryll:invoke var "name")
+                          var)))))
       (call finalize:))))
 
 (define (subcontext ctx)
