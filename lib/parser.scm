@@ -1,5 +1,36 @@
 (declare (unit parser))
-(declare (uses ast))
+(declare (uses ast/numbers
+               ast/documents
+               ast/operators/binary
+               ast/operators/unary
+               ast/operators/ternary
+               ast/barewords
+               ast/call
+               ast/call/functions
+               ast/lexical/variables
+               ast/assign
+               ast/operators/equality
+               ast/ref/methods
+               ast/call/nether
+               ast/call/methods
+               ast/named
+               ast/slot
+               ast/arguments
+               ast/splices
+               ast/hashes
+               ast/arrays
+               ast/identifiers
+               ast/strings
+               ast/blocks
+               ast/namespaces
+               ast/signatures
+               ast/lambdas
+               ast/lexical/declarations
+               ast/modules
+               ast/traits
+               ast/functions
+               ast/subs
+               ast/conditions))
 
 (import scheme)
 (import srfi-1 srfi-13)

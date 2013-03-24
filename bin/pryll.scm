@@ -1,6 +1,5 @@
 (declare (uses util))
 (declare (uses mop))
-(declare (uses ast))
 (declare (uses parser))
 (declare (uses compiler))
 (declare (uses exceptions))
