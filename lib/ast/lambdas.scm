@@ -7,15 +7,22 @@
         (var-none (compile/genvar 'none)))
     (if signature
       `(lambda (,var-pos ,var-nam)
-         (void)
-         ,(pryll:invoke
-            signature
-            "compile-scope"
-            (list ctx var-pos var-nam block)))
-      (let ((subctx (subcontext ctx)))
-        `(lambda ,var-none
-           (void)
-           ,(compile subctx block))))))         
+         ,(compile-with-return
+            ctx
+            (lambda (rctx)
+              `(begin
+                 ,(pryll:invoke
+                    signature
+                    "compile-scope"
+                    (list rctx var-pos var-nam block))
+                 (void)))))
+      `(lambda ,var-none
+         ,(compile-with-return
+            ctx
+            (lambda (rctx)
+              `(begin
+                 ,(compile rctx block)
+                 (void))))))))
 
 (define <pryll:ast-lambda>
   (mop/init
@@ -58,6 +65,21 @@
             (attr/item "location")
             (attr/item "expression"))
       (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                (let ((var-ret (pryll:invoke ctx "find-return")))
+                  (if var-ret
+                    `(,var-ret
+                       ,(compile
+                          ctx
+                          (pryll:object-data self "expression")))
+                    (pryll:err <pryll:error-syntax>
+                               location: (pryll:object-data
+                                           self
+                                           "location")
+                               message: (conc
+                                          "Invalid return outside of "
+                                          "lambda scope"))))))
             (dump-method
               (lambda (self)
                 `(return ,(dump-slot self "expression")))))

@@ -431,10 +431,11 @@
               (unwrap-pos-args
                 (lambda (self)
                   (let* ((name (pryll:invoke self "name")))
-                    (lambda (object new-value)
-                      (set! (pryll:object-data object name)
-                        new-value)
-                      new-value)))))
+                    (unwrap-pos-args
+                      (lambda (object new-value)
+                        (set! (pryll:object-data object name)
+                          new-value)
+                        new-value))))))
           get-reader-code:
             (method
               "get-reader-code"

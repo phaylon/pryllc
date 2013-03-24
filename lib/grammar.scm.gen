@@ -4,25 +4,11 @@
   (output: parser "lib/grammar.scm.yy")
   (expect: 5)
 
-  (INT FLOAT BAREWORD LEXVAR
-   STRING_SINGLE STRING_DOUBLE
-   SEMICOLON COLON COMMA
-   PARENS_L  PARENS_R
-   BRACKET_L BRACKET_R
-   BRACE_L   BRACE_R
-   QMARK
-   SPLICE_ARRAY SPLICE_HASH
-   SYN_LAMBDA
-   DECLARE_MODULE
-   DECLARE_FUNCTION
-   DECLARE_SUB
-   LEX_MY
-   COND_TEST
-   COND_ELSE
+  (
    (left:  OP_L_OR OP_L_ERR)
    (left:  OP_L_AND)
-   (right: OP_RETURN)
    (right: OP_L_NOT)
+   (right: OP_RETURN)
    (right: OP_ASSIGN OP_ASSIGN_SC)
    (right: OP_TERN_THEN OP_TERN_ELSE)
    (left:  OP_DOES)
@@ -35,8 +21,26 @@
    (left:  OP_H_MATH)
    (left:  OP_METHOD_CALL OP_METHOD_REF OP_NETHER_CALL)
    (left:  prec-slot)
+   (left:  prec-call)
    (right: prec-num-sign)
    (left:  OP_NAMESPACE)
+   (nonassoc: 
+     INT FLOAT BAREWORD LEXVAR
+     STRING_SINGLE STRING_DOUBLE
+     SEMICOLON COLON COMMA
+     QMARK
+     SPLICE_ARRAY SPLICE_HASH
+     SYN_LAMBDA
+     DECLARE_MODULE
+     DECLARE_FUNCTION
+     DECLARE_SUB
+     LEX_MY
+     COND_TEST
+     COND_ELSE
+     PARENS_L  PARENS_R
+     BRACKET_L BRACKET_R
+     BRACE_L   BRACE_R)
+   (nonassoc: prec-bottom)
    )
 
   (document
@@ -365,20 +369,22 @@
             : (make-condition $1 $2 $3 $4))
 
   (expression
-        (atom)
+        (atom (prec: prec-bottom))
             : $1
-        (op-equal-binary)
-            : $1
-        (expression BRACKET_L expression BRACKET_R)
+        (expression BRACKET_L expression BRACKET_R (prec: prec-call))
             : (make-slot-ref $2 $1 $3)
+        (expression PARENS_L arguments-rest PARENS_R (prec: prec-call))
+            : (make-call $2 $1 (make-arguments $3))
+        (BAREWORD PARENS_L arguments-rest PARENS_R (prec: prec-call))
+            : (make-function-call $1 (make-arguments $3))
         (SYN_LAMBDA signature block/lambda)
             : (make-lambda $1 $2 $3)
+        (op-equal-binary)
+            : $1
         (conditional)
             : $1
         (block-declaration)
             : $1
-        (OP_RETURN expression)
-            : (make-return $1 $2)
         (expression
          OP_METHOD_REF
          method
@@ -398,10 +404,8 @@
          opt-emark
          arguments)
             : (make-nether-call $2 $1 $3 $4 $5)
-        (BAREWORD PARENS_L arguments-rest PARENS_R)
-            : (make-function-call $1 (make-arguments $3))
-        (expression PARENS_L arguments-rest PARENS_R)
-            : (make-call $2 $1 (make-arguments $3))
+        (OP_RETURN expression)
+            : (make-return $1 $2)
         (expression OP_TERN_THEN expression OP_TERN_ELSE expression)
             : (make-ternary-operator $2 $1 $3 $5)
         (assignable OP_ASSIGN expression)

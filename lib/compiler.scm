@@ -74,6 +74,14 @@
                expected: ,(type-meta type)
                received: (pryll:meta-for ,var-value))))))))
 
+(define (compile-with-return ctx proc)
+  (let ((var-ret (compile/genvar 'ret))
+        (rctx (subcontext ctx)))
+    (pryll:invoke rctx "set-return" (list var-ret))
+    `(call/cc
+       (lambda (,var-ret)
+         ,(proc rctx)))))
+
 (define <compiler-var/scope>
   (mop/init
     (mop/class name: "Core::AST::Compiler::Variable::Scoped")
@@ -144,6 +152,12 @@
                  message:  (conc "Illegal redeclaration of variable "
                                  name)))))
 
+(define-inline (call-parent self method . args)
+  (let ((parent (pryll:object-data self "parent")))
+    (if (not-void? parent)
+      (pryll:invoke parent method args)
+      #f)))
+
 (define <context>
   (mop/init
     (mop/class name: "Core::AST::Compiler::Context")
@@ -157,9 +171,21 @@
               name:       "prepared"
               default:    (lambda args (mkhash)))
             (mop/attribute
+              name:       "return"
+              reader:     "return"
+              writer:     "set-return")
+            (mop/attribute
               name:       "variables"
               default:    (lambda args (mkhash))))
       (call add-methods:
+            (mop/method
+              name: "find-return"
+              code: (unwrap-pos-args
+                      (lambda (self)
+                        (let ((ret (pryll:object-data self "return")))
+                          (if (not-void? ret)
+                            ret
+                            (call-parent self "find-return"))))))
             (mop/method
               name: "find-variable"
               code: (unwrap-pos-args
