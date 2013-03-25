@@ -848,3 +848,29 @@
 (define (mop/method #!key name code)
   (method name code))
 
+(define (ensure-new-function self func)
+  (let* ((name (pryll:invoke func "name")))
+    (if (hash-table-exists?
+          (pryll:object-data self "functions")
+          name)
+      (error "Function already defined"))))
+
+(define <pryll:meta-module>
+  (mop/init
+    (mop/class name: "Module")
+    (lambda (call)
+      (call add-attributes:
+            (mop/attribute
+              name:     "functions"
+              default:  (lambda args (mkhash))))
+      (call add-methods:
+            (mop/method
+              name: "add-function"
+              code: (unwrap-pos-args
+                      (lambda (self func)
+                        (ensure-new-function self func)
+                        (hash-table-set!
+                          (pryll:object-data self "functions")
+                          func)))))
+      (call finalize:))))
+

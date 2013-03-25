@@ -168,11 +168,11 @@
          "function")
         (else (error "Unexpected callable type"))))
 
-(define (ensure-new-callable self ast)
+(define (ensure-new-identifier self ast)
   (let* ((name (pryll:invoke ast "name"))
          (loc (pryll:invoke ast "location"))
          (known (or (hash-table-exists?
-                      (pryll:object-data self "callables")
+                      (pryll:object-data self "identifiers")
                       name))))
     (if known
       (pryll:err <pryll:error-syntax>
@@ -188,6 +188,36 @@
     (if (not-void? parent)
       (pryll:invoke parent method args)
       #f)))
+
+(define <ident-callable>
+  (mop/init
+    (mop/class name: "Core::AST::Compiler::Ident::Callable")
+    (lambda (call)
+      (call add-attributes:
+            (mop/attribute
+              name:         "name"
+              init-arg:     "name"
+              reader:       "name"
+              is-required:  #t)
+            (mop/attribute
+              name:         "variable"
+              init-arg:     "variable"
+              reader:       "variable"
+              is-required:  #t))
+      (call add-methods:
+            (mop/method
+              name: "get-value"
+              code: (unwrap-pos-args
+                      (lambda (self)
+                        (pryll:object-data self "variable")))))
+      (call finalize:))))
+
+(define (context-identifier ast var)
+  (cond ((pryll:isa? ast <pryll:ast-subroutine>)
+         (pryll:make <ident-callable>
+                     name:      (pryll:invoke ast "name")
+                     variable:  var))
+        (else (error "Unable to declare" ast))))
 
 (define <context>
   (mop/init
@@ -206,8 +236,8 @@
               reader:     "return"
               writer:     "set-return")
             (mop/attribute
-              name:       "callables"
-              init-arg:   "callables"
+              name:       "identifiers"
+              init-arg:   "identifiers"
               default:    (lambda args (mkhash)))
             (mop/attribute
               name:       "variables"
@@ -220,23 +250,23 @@
                         (let* ((name (pryll:invoke ast "name"))
                                (var (compile/genvar name))
                                (var-none (compile/genvar 'none)))
-                          (ensure-new-callable self ast)
+                          (ensure-new-identifier self ast)
                           (hash-table-set!
-                            (pryll:object-data self "callables")
+                            (pryll:object-data self "identifiers")
                             name
-                            var)
+                            (context-identifier ast var))
                           `(define ,var (void))))))
             (mop/method
-              name: "find-callable"
+              name: "find-identifier"
               code: (unwrap-pos-args
                       (lambda (self name)
                         (if (hash-table-exists?
-                              (pryll:object-data self "callables")
+                              (pryll:object-data self "identifiers")
                               name)
                           (hash-table-ref
-                            (pryll:object-data self "callables")
+                            (pryll:object-data self "identifiers")
                             name)
-                          (call-parent self "find-callable" name)))))
+                          (call-parent self "find-identifier" name)))))
             (mop/method
               name: "find-return"
               code: (unwrap-pos-args
@@ -296,9 +326,18 @@
 (define root-env
   (pryll:make <context>
               parent:       (void)
-              callables:    (alist->hash-table
-                              '(("say"      . func/say)
-                                ("print"    . func/print)))
+              identifiers:  (alist->hash-table
+                              (list
+                                (cons "say"
+                                      (pryll:make
+                                        <ident-callable>
+                                        name: "say"
+                                        variable: 'func/say))
+                                (cons "print"
+                                      (pryll:make
+                                        <ident-callable>
+                                        name: "print"
+                                        variable: 'func/print))))
               variables:    (mkhash)))
 
 (define (ast->code ast)

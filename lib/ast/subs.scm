@@ -5,7 +5,9 @@
 
 (define-inline (compile-sub self ctx)
   (let* ((name (pryll:object-data self "name")))
-    `(set! ,(pryll:invoke ctx "find-callable" (list name))
+    `(set! ,(pryll:invoke
+              (pryll:invoke ctx "find-identifier" (list name))
+              "variable")
        ,(compile
           ctx
           (pryll:make

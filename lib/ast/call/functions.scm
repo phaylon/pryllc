@@ -3,14 +3,17 @@
 
 (import chicken scheme)
 
+(define-inline (callable? item)
+  (or (pryll:isa? ident <ident-callable>)))
+
 (define-inline (compile-func-call self ctx)
-  (let* ((name (pryll:object-data self "function-name"))
-         (loc  (pryll:object-data self "location"))
-         (args (pryll:object-data self "arguments"))
-         (var  (pryll:invoke ctx "find-callable" (list name))))
-    (if var
+  (let* ((name  (pryll:object-data self "function-name"))
+         (loc   (pryll:object-data self "location"))
+         (args  (pryll:object-data self "arguments"))
+         (ident (pryll:invoke ctx "find-identifier" (list name))))
+    (if ident
       `(pryll:call
-         ,var
+         ,(pryll:invoke ident "get-value")
          ,(pryll:invoke args "compile-positional" (list ctx))
          ,(pryll:invoke args "compile-named" (list ctx))
          (list ,@loc)
