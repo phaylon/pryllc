@@ -16,7 +16,6 @@ module Core::Test {
                     ?? $item
                     !! $item.^gist;
             }),
-            "\n",
         );
     }
 
