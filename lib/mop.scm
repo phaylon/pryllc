@@ -102,12 +102,12 @@
         ((procedure? item)  (mop/meta-lambda))
         (else               (error "Unable to find meta for" item))))
 
-(define (pryll:call func pos nam location)
+(define (pryll:call func pos nam location #!optional descr)
   (cond ((procedure? func)
          (pryll:stack-level
            (pryll:stack-id "lambda"
                            location
-                           "")
+                           (or descr ""))
            (lambda ()
              (func pos nam))))
         (else (pryll:invoke func "call" pos nam))))

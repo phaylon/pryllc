@@ -7,7 +7,9 @@
   (list type location description))
 
 (define (pryll:format-stack-id id)
-  (conc (list-ref id 0)
+  (conc "["
+        (list-ref id 0)
+        "]"
         (let ((desc (list-ref id 2)))
           (if desc
             (conc " " desc)

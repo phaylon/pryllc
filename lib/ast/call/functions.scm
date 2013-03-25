@@ -13,7 +13,8 @@
          ,var
          ,(pryll:invoke args "compile-positional" (list ctx))
          ,(pryll:invoke args "compile-named" (list ctx))
-         (list ,@loc))
+         (list ,@loc)
+         ,(conc "named procedure '" name "'"))
       (pryll:err <pryll:error-syntax>
                  location: loc
                  message:  (conc "Unknown callable "
