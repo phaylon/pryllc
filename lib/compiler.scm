@@ -207,6 +207,7 @@
               writer:     "set-return")
             (mop/attribute
               name:       "callables"
+              init-arg:   "callables"
               default:    (lambda args (mkhash)))
             (mop/attribute
               name:       "variables"
@@ -292,9 +293,17 @@
               parent:    ctx
               variables: (mkhash)))
 
+(define root-env
+  (pryll:make <context>
+              parent:       (void)
+              callables:    (alist->hash-table
+                              '(("say"      . func/say)
+                                ("print"    . func/print)))
+              variables:    (mkhash)))
+
 (define (ast->code ast)
   (let ((ctx (pryll:make <context>
-                         parent:    #f
+                         parent:    root-env
                          variables: (mkhash))))
     `(begin
        ,(pryll:invoke
