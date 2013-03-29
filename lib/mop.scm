@@ -14,6 +14,7 @@
 (define-record object meta data internal)
 
 (define (pryll:name object)
+;  (dbg "name for " object)
   (let ((name (pryll:object-data object "name")))
     (if (v-true? name)
       name
@@ -71,6 +72,13 @@
                (list superclass: extends)
                (list))))))
 
+(define (mop/module #!key name)
+  (pryll:invoke
+    <pryll:meta-module>
+    "new"
+    (list)
+    (phash name: name)))
+
 (define (pryll:isa? obj class)
   (pryll:invoke (pryll:meta-for obj) "is-a" (list class)))
 
@@ -119,10 +127,11 @@
     (or internal (mkhash))))
 
 (define (pryll:invoke object method #!optional pos nam fallback loc)
-  (dbg "call method " object " " method " " pos " " nam)
+;  (dbg "method " object " " method)
   (let* ((meta (pryll:meta-for object))
          (mcache (pryll:object-internal meta "mcache"))
          (proc (phash-slot mcache method)))
+    (dbg "call method " (pryll:name meta) "." method " " pos " " nam)
     (if (not-void? proc)
       (pryll:stack-level
         (pryll:stack-id "method"
@@ -446,7 +455,7 @@
                          (default (pryll:invoke self "default")))
                     ; TODO die if lazy without default
                     (unwrap-pos-args
-                      (if lazy
+                      (if (v-true? lazy)
                         (lambda (object)
                           (if (pryll:object-has object name)
                             (pryll:object-data object name)
@@ -855,15 +864,51 @@
           name)
       (error "Function already defined"))))
 
+(define <pryll:meta-function>
+  (mop/init
+    (mop/class name: "Function")
+    (lambda (call)
+      (call add-attributes:
+            (mop/attribute
+              reader:   "name"
+              init-arg: "name"
+              name:     "name")
+            (mop/attribute
+              reader:   "code"
+              init-arg: "code"
+              name:     "code"))
+      (call add-methods:
+            (mop/method
+              name: "call"
+              code: (lambda (pos nam)
+                      (let ((proc (pryll:object-data (car pos) "code")))
+                        (proc (cdr pos) nam)))))
+      (call finalize:))))
+
 (define <pryll:meta-module>
   (mop/init
     (mop/class name: "Module")
     (lambda (call)
       (call add-attributes:
             (mop/attribute
+              reader:   "name"
+              init-arg: "name"
+              name:     "name")
+            (mop/attribute
               name:     "functions"
               default:  (lambda args (mkhash))))
       (call add-methods:
+            (mop/method
+              name: "finalize"
+              code: (lambda args (void)))
+            (mop/method
+              name: "get-function"
+              code: (unwrap-pos-args
+                      (lambda (self name)
+                        (hash-table-ref/default
+                          (pryll:object-data self "functions")
+                          name
+                          (void)))))
             (mop/method
               name: "add-function"
               code: (unwrap-pos-args
@@ -871,6 +916,29 @@
                         (ensure-new-function self func)
                         (hash-table-set!
                           (pryll:object-data self "functions")
+                          (pryll:invoke func "name")
                           func)))))
       (call finalize:))))
+
+(define (mop/module #!key name)
+  (pryll:invoke
+    <pryll:meta-module>
+    "new"
+    (list)
+    (phash name: name)))
+
+(define pryll:meta-registry (mkhash))
+
+(define (pryll:register meta)
+  (hash-table-set!
+    pryll:meta-registry
+    (pryll:name meta)
+    meta))
+
+(for-each pryll:register
+          (list <pryll:meta-class>
+                <pryll:meta-method>
+                <pryll:meta-attribute>
+                <pryll:meta-module>
+                <pryll:meta-role>))
 

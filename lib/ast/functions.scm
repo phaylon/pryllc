@@ -3,6 +3,36 @@
 
 (import chicken scheme)
 
+(declare (hide find-module compile-module-function))
+
+(define (find-module self ctx)
+  (let ((ident (pryll:invoke ctx "find-special" (list "$*MODULE"))))
+    (if ident
+      ident
+      (error "Function declaration outside of module declaration"))))
+
+(define (compile-module-function self ctx)
+  (let* ((src-mod   (find-module self ctx))
+         (loc       (pryll:object-data self "location"))
+         (name      (pryll:object-data self "name"))
+         (sign      (pryll:object-data self "signature"))
+         (block     (pryll:object-data self "block"))
+         (var-proc  (compile/genvar 'proc)))
+    `(let ((,var-proc ,(compile
+                         ctx
+                         (pryll:make <pryll:ast-lambda>
+                                     location:  loc
+                                     signature: sign
+                                     block:     block))))
+       ,(compile/declaration ctx self var-proc)
+       (pryll:invoke
+         ,src-mod
+         "add-function"
+         (list
+           (pryll:make <pryll:meta-function>
+                       name: ,name
+                       code: ,var-proc))))))
+
 (define <pryll:ast-function>
   (mop/init
     (mop/class name: "Core::AST::Function")
@@ -14,6 +44,8 @@
             (attr/item "traits")
             (attr/item "block"))
       (call add-methods:
+            (compile-method
+              compile-module-function)
             (dump-method
               (lambda (self)
                 `(function

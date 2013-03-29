@@ -5,6 +5,15 @@
 (require-extension srfi-1 srfi-13 srfi-69 data-structures)
 (define DEBUG (get-environment-variable "DEBUG"))
 
+(define (pryll:true? value)
+  (not (or (and (boolean? value)
+                value)
+           (void? value)
+           (and (number? value)
+                (= 0 value))
+           (and (string? value)
+                (string-null? value)))))
+
 (define (v-true? value)
   (and value (not (void? value))))
 

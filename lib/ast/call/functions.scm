@@ -3,9 +3,6 @@
 
 (import chicken scheme)
 
-(define-inline (callable? item)
-  (or (pryll:isa? ident <ident-callable>)))
-
 (define-inline (compile-func-call self ctx)
   (let* ((name  (pryll:object-data self "function-name"))
          (loc   (pryll:object-data self "location"))

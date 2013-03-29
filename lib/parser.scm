@@ -30,6 +30,8 @@
                ast/traits
                ast/functions
                ast/subs
+               ast/special/variables
+               ast/booleans
                ast/conditions))
 
 (import scheme)
@@ -48,6 +50,8 @@
       (* (or (/ "az") (/ "AZ") (/ "09") "_" "-"))))
 (define opword
   '(+ ("+-*/=<>~|&?!@%")))
+(define special-var
+  `(: "$*" ,bareword))
 (define lexvar
   `(: "$" ,bareword))
 (define string-single
@@ -62,6 +66,7 @@
        `((DISCARD          (+ whitespace))
          (DISCARD          (: "#" (*? any) eol))
          (LEXVAR           ($ ,lexvar))
+         (SPECVAR          ($ ,special-var))
          (BAREWORD         ($ ,bareword))
          (STRING_SINGLE    ($ ,string-single))
          (STRING_DOUBLE    ($ ,string-double))
@@ -141,6 +146,8 @@
            ((value-is "sub")                  'DECLARE_SUB)
            ((value-is "class")                'DECLARE_CLASS)
            ((value-is "method")               'DECLARE_METHOD)
+           ((value-is "true")                 'OP_TRUE)
+           ((value-is "false")                'OP_FALSE)
            ((value-is-any declare/modifiers)  'DECLARE_MODIFIER)
            ((value-is "with")                 'DECLARE_ROLE_APPLY)
            ((value-is "role")                 'DECLARE_ROLE)

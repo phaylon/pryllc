@@ -28,7 +28,7 @@ module Core::Test {
     }
 
     function is($received, $expected, String $title) {
-        if $received equals $expected {
+        if $received is $expected {
             pass($title);
         }
         else {

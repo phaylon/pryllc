@@ -3,6 +3,21 @@
 
 (import chicken scheme)
 
+(define-inline (compile-module self ctx)
+  (let* ((name (pryll:invoke (pryll:object-data self "name") "name")))
+    (compile/with-special-var
+      ctx
+      "$*MODULE"
+      `(mop/module name: ,name)
+      (lambda (mctx var)
+        `(begin
+           ,(compile/declaration mctx self var)
+           ,(compile
+              mctx
+              (pryll:object-data self "block"))
+           (pryll:invoke ,var "finalize")
+           (pryll:register ,var))))))
+
 (define <pryll:ast-module>
   (mop/init
     (mop/class name: "Core::AST::Module")
@@ -13,6 +28,9 @@
             (attr/item "traits")
             (attr/item "block"))
       (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                (compile-module self ctx)))
             (dump-method
               (lambda (self)
                 `(module

@@ -11,6 +11,19 @@
             (attr/item "location")
             (attr/item "value"))
       (call add-methods:
+            (mop/method
+              name: "name"
+              code: (lambda (pos nam)
+                      (dbg "namespace to name")
+                      (pryll:object-data (car pos) "value")))
+            (compile-method
+              (lambda (self ctx)
+                (let* ((name (pryll:object-data self "value"))
+                       (ident (pryll:invoke ctx
+                                            "find-identifier"
+                                            (list name)))
+                       (var (pryll:invoke ident "variable")))
+                  `(force ,var))))
             (dump-method
               (lambda (self)
                 `(ns ,(pryll:object-data self "value")))))

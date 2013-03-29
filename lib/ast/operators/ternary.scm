@@ -3,6 +3,11 @@
 
 (import chicken scheme)
 
+(define-inline (compile-tern self ctx)
+  `(if (pryll:true? ,(compile ctx (pryll:object-data self "condition")))
+     ,(compile ctx (pryll:object-data self "consequence"))
+     ,(compile ctx (pryll:object-data self "alternative"))))
+
 (define <pryll:ast-ternary-operator>
   (mop/init
     (mop/class name: "Core::AST::Operator::Ternary")
@@ -13,6 +18,9 @@
             (attr/item "consequence")
             (attr/item "alternative"))
       (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                (compile-tern self ctx)))
             (dump-method
               (lambda (self)
                 `(ternop

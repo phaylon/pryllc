@@ -130,7 +130,9 @@
               location: (or loc (void))))
 
 (define-inline (declaration? item)
-  (pryll:isa? item <pryll:ast-subroutine>))
+  (or (pryll:isa? item <pryll:ast-subroutine>)
+      (pryll:isa? item <pryll:ast-function>)
+      (pryll:isa? item <pryll:ast-module>)))
 
 (define (compile/statements ctx seq)
   `(begin
@@ -168,8 +170,27 @@
          "function")
         (else (error "Unexpected callable type"))))
 
+(define-inline (to-name value)
+;  (dbg "to-name " (pryll:name value))
+  (cond ((string? value)
+         value)
+        ((pryll:isa? value <pryll:ast-namespace>)
+         (pryll:invoke value "name"))
+        (else (error "Unable to convert to name" value))))
+
+(define (compile/with-special-var ctx vname source proc)
+  (let* ((lex (compile/genvar vname))
+         (subctx (subcontext/customized
+                   ctx
+                   special-variables:
+                   (alist->hash-table
+                     (list (cons vname
+                                 (lambda () lex)))))))
+    `(let ((,lex ,source))
+       ,(proc subctx lex))))
+
 (define (ensure-new-identifier self ast)
-  (let* ((name (pryll:invoke ast "name"))
+  (let* ((name (to-name (pryll:invoke ast "name")))
          (loc (pryll:invoke ast "location"))
          (known (or (hash-table-exists?
                       (pryll:object-data self "identifiers")
@@ -189,7 +210,7 @@
       (pryll:invoke parent method args)
       #f)))
 
-(define <ident-callable>
+(define <ident-declare>
   (mop/init
     (mop/class name: "Core::AST::Compiler::Ident::Callable")
     (lambda (call)
@@ -213,9 +234,11 @@
       (call finalize:))))
 
 (define (context-identifier ast var)
-  (cond ((pryll:isa? ast <pryll:ast-subroutine>)
-         (pryll:make <ident-callable>
-                     name:      (pryll:invoke ast "name")
+  (cond ((or (pryll:isa? ast <pryll:ast-subroutine>)
+             (pryll:isa? ast <pryll:ast-function>)
+             (pryll:isa? ast <pryll:ast-module>))
+         (pryll:make <ident-declare>
+                     name:      (to-name (pryll:invoke ast "name"))
                      variable:  var))
         (else (error "Unable to declare" ast))))
 
@@ -240,16 +263,31 @@
               init-arg:   "identifiers"
               default:    (lambda args (mkhash)))
             (mop/attribute
+              name:       "special-variables"
+              init-arg:   "special-variables"
+              default:    (lambda args (mkhash)))
+            (mop/attribute
               name:       "variables"
               default:    (lambda args (mkhash))))
       (call add-methods:
             (mop/method
+              name: "find-special"
+              code: (unwrap-pos-args
+                      (lambda (self name)
+                        (let ((special (pryll:object-data
+                                         self
+                                         "special-variables")))
+                          (if (hash-table-exists? special name)
+                            ((hash-table-ref special name))
+                            (call-parent self "find-special" name))))))
+            (mop/method
               name: "predeclare"
               code: (unwrap-pos-args
                       (lambda (self ast)
-                        (let* ((name (pryll:invoke ast "name"))
+                        (let* ((name (to-name (pryll:invoke ast "name")))
                                (var (compile/genvar name))
                                (var-none (compile/genvar 'none)))
+                          (dbg "predeclare " name)
                           (ensure-new-identifier self ast)
                           (hash-table-set!
                             (pryll:object-data self "identifiers")
@@ -318,6 +356,21 @@
                           var)))))
       (call finalize:))))
 
+(define (subcontext/customized ctx . args)
+  (apply pryll:make
+         <context>
+         parent: ctx
+         args))
+
+(define (compile/declaration ctx ast source)
+  `(set! ,(pryll:invoke
+            (pryll:invoke
+              ctx
+              "find-identifier"
+              (list (to-name (pryll:invoke ast "name"))))
+            "variable")
+     ,source))
+
 (define (subcontext ctx)
   (pryll:make <context>
               parent:    ctx
@@ -330,12 +383,12 @@
                               (list
                                 (cons "say"
                                       (pryll:make
-                                        <ident-callable>
+                                        <ident-declare>
                                         name: "say"
                                         variable: 'func/say))
                                 (cons "print"
                                       (pryll:make
-                                        <ident-callable>
+                                        <ident-declare>
                                         name: "print"
                                         variable: 'func/print))))
               variables:    (mkhash)))

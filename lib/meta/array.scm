@@ -7,6 +7,14 @@
     (lambda (call)
       (call add-methods:
             (mop/method
+              name: "map"
+              code: (lambda (pos nam)
+                      (let ((self (car pos))
+                            (proc (cadr pos)))
+                        (map (lambda (item)
+                               (pryll:call proc (list item)))
+                             self))))
+            (mop/method
               name: "set"
               code: (lambda (pos nam)
                       (set! (p/array-ref (car pos) (cadr pos))
