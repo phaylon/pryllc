@@ -105,6 +105,14 @@
               is-lazy:      #t))
       (call add-methods:
             (mop/method
+              name: "compile-assign"
+              code: (lambda (pos nam)
+                      (let* ((self (car pos))
+                             (ctx  (cadr pos))
+                             (expr (caddr pos))
+                             (var (pryll:invoke self "symbol")))
+                        `(set! ,var ,(compile ctx expr)))))
+            (mop/method
               name: "compile-access"
               code: (lambda (pos nam)
                       (let* ((self (car pos))
@@ -392,21 +400,26 @@
               parent:    ctx
               variables: (mkhash)))
 
+(define-inline (root-ident name var)
+  (cons name
+        (pryll:make
+          <ident-declare>
+          name: name
+          variable: var)))
+
 (define root-env
   (pryll:make <context>
               parent:       (void)
               identifiers:  (alist->hash-table
                               (list
-                                (cons "say"
-                                      (pryll:make
-                                        <ident-declare>
-                                        name: "say"
-                                        variable: 'func/say))
-                                (cons "print"
-                                      (pryll:make
-                                        <ident-declare>
-                                        name: "print"
-                                        variable: 'func/print))))
+                                (root-ident "Core::String"
+                                            '<pryll:meta-string>)
+                                (root-ident "Core::Number"
+                                            '<pryll:meta-number>)
+                                (root-ident "say"
+                                            'func/say)
+                                (root-ident "print"
+                                            'func/print)))
               variables:    (mkhash)))
 
 (define (ast->code ast)

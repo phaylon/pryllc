@@ -3,6 +3,25 @@
 
 (import chicken scheme)
 
+(define-inline (find-variable self ctx)
+  (let* ((name (pryll:object-data self "value"))
+         (var (pryll:invoke ctx "find-variable" (list name))))
+    (if (v-true? var)
+      var
+      `(pryll:err
+         <pryll:error-syntax>
+         location: (list ,@(pryll:object-data self "location"))
+         message: (conc "Unbound lexical variable '"
+                        name
+                        "'")))))
+
+(define-inline (compile-assign self ctx expr)
+  (let* ((name (pryll:object-data self "value"))
+         (var (find-variable self ctx)))
+    `(begin
+       ,(pryll:invoke var "compile-assign" (list ctx expr))
+       ,(pryll:invoke var "compile-access" (list ctx)))))
+
 (define <pryll:ast-variable-lexical>
   (mop/init
     (mop/class name: "AST::Variable::Lexical")
@@ -18,6 +37,13 @@
                         '(: bos "$")
                         (pryll:object-data (car pos) "value")
                         "")))
+            (mop/method
+              name: "compile-assign"
+              code: (lambda (pos nam)
+                      (compile-assign
+                        (car pos)
+                        (cadr pos)
+                        (caddr pos))))
             (compile-method
               (lambda (self ctx)
                 (let* ((name (pryll:object-data self "value"))

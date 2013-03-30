@@ -12,23 +12,23 @@ module Core::Test {
             '# ',
             @$items.map(lambda ($item) {
                 return
-                    ($item ~~ String or $item ~~ Number)
+                    ($item ~~ Core::String or $item ~~ Core::Number)
                     ?? $item
                     !! $item.^gist;
             }),
         );
     }
 
-    function pass(String $title) {
+    function pass($title) {
         say('ok ', next-idx(), ' - ', $title);
     }
 
-    function fail(String $title) {
+    function fail($title) {
         say('not ok ', next-idx(), ' - ', $title);
     }
 
-    function is($received, $expected, String $title) {
-        if $received is $expected {
+    function is($received, $expected, $title) {
+        if $received ~~ $expected {
             pass($title);
         }
         else {

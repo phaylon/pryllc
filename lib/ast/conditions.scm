@@ -14,6 +14,20 @@
             (attr/item "block")
             (attr/item "else"))
       (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                `(if (,(if (string=? (pryll:object-data self "type")
+                                     "if")
+                         'pryll:true?
+                         'pryll:false?)
+                       ,(compile ctx
+                                 (pryll:object-data self "condition")))
+                   ,(compile ctx
+                             (pryll:object-data self "block"))
+                   ,(let ((el (pryll:object-data self "else")))
+                      (if (v-true? el)
+                        (compile ctx el)
+                        '(void))))))
             (dump-method
               (lambda (self)
                 `(,(string->symbol (pryll:object-data self "type"))

@@ -7,6 +7,13 @@
     (lambda (call)
       (call add-methods:
             (mop/method
+              name: "match"
+              code: (lambda (pos nam)
+                      (let* ((self (car pos))
+                             (value (cadr pos)))
+                        (and (number? value)
+                             (= self value)))))
+            (mop/method
               name: "str"
               code: (lambda (pos nam)
                       (number->string (car pos))))

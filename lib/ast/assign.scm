@@ -14,6 +14,11 @@
     ("||=" "||")
     ("&&=" "&&")))
 
+(define-inline (compile-assign self ctx)
+  (let ((target (pryll:object-data self "target"))
+        (expr (pryll:object-data self "expression")))
+    (pryll:invoke target "compile-assign" (list ctx expr))))
+
 (define <pryll:ast-assign>
   (mop/init
     (mop/class name: "Core::AST::Assign")
@@ -23,6 +28,9 @@
             (attr/item "target")
             (attr/item "expression"))
       (call add-methods:
+            (compile-method
+              (lambda (self ctx)
+                (compile-assign self ctx)))
             (dump-method
               (lambda (self)
                 `(assign
