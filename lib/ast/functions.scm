@@ -18,12 +18,20 @@
          (sign      (pryll:object-data self "signature"))
          (block     (pryll:object-data self "block"))
          (var-proc  (compile/genvar 'proc)))
-    `(let ((,var-proc ,(compile
-                         ctx
-                         (pryll:make <pryll:ast-lambda>
-                                     location:  loc
-                                     signature: sign
-                                     block:     block))))
+    `(let ((,var-proc
+             ,(compile
+                ctx
+                (pryll:make
+                  <pryll:ast-lambda>
+                  stack-type:   "function"
+                  stack-description: (conc name
+                                           " in module "
+                                           (pryll:invoke
+                                             ctx
+                                             "find-namespace"))
+                  location:     loc
+                  signature:    sign
+                  block:        block))))
        ,(compile/declaration ctx self var-proc)
        (pryll:invoke
          ,src-mod

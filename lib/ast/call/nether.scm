@@ -1,5 +1,5 @@
 (declare (unit ast/call/nether))
-(declare (uses ast/util mop compiler errors))
+(declare (uses ast/util mop compiler errors nether))
 
 (import chicken scheme)
 

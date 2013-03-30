@@ -110,15 +110,23 @@
         ((procedure? item)  (mop/meta-lambda))
         (else               (error "Unable to find meta for" item))))
 
-(define (pryll:call func pos nam location #!optional descr)
-  (cond ((procedure? func)
-         (pryll:stack-level
-           (pryll:stack-id "lambda"
-                           location
-                           (or descr ""))
-           (lambda ()
-             (func pos nam))))
-        (else (pryll:invoke func "call" pos nam))))
+(define (pryll:call proc #!optional pos nam src)
+  (pryll:stack-location
+    src
+    (lambda ()
+      (cond ((procedure? proc)
+             (proc (or pos (list)) (or nam (mkhash))))
+            (else (pryll:invoke proc "call" pos nam src))))))
+
+;(define (pryll:call func pos nam location #!optional descr)
+;  (cond ((procedure? func)
+;         (pryll:stack-level
+;           (pryll:stack-id "lambda"
+;                           location
+;                           (or descr ""))
+;           (lambda ()
+;             (func pos nam))))
+;        (else (pryll:invoke func "call" pos nam))))
 
 (define (make meta #!optional data internal)
   (make-object
@@ -126,29 +134,55 @@
     (or data (mkhash))
     (or internal (mkhash))))
 
-(define (pryll:invoke object method #!optional pos nam fallback loc)
-;  (dbg "method " object " " method)
+(define-inline (invoke object method #!optional pos nam src fallback)
   (let* ((meta (pryll:meta-for object))
-         (mcache (pryll:object-internal meta "mcache"))
-         (proc (phash-slot mcache method)))
-    (dbg "call method " (pryll:name meta) "." method " " pos " " nam)
-    (if (not-void? proc)
-      (pryll:stack-level
-        (pryll:stack-id "method"
-                        loc
-                        (conc (pryll:name meta)
-                              "."
-                              method))
-        (lambda ()
-          (proc (append (list object) (or pos (list)))
-                (or nam (mkhash)))))
-      (if fallback
-        (fallback)
-        (pryll:err <pryll:error-unknown-method>
-                   meta:     meta
-                   method:   method
-                   location: (or loc (void)))))))
-;        (error "Invalid method" method)))))
+         (mcache (pryll:object-internal meta "mcache")))
+    (if (void? mcache)
+      (pryll:err <pryll:error-generic>
+                 message: (conc "Method cache unavailable"))
+      (let ((proc (phash-slot mcache method)))
+        (if (not-void? proc)
+          (pryll:stack-location
+            src
+            (lambda ()
+              (pryll:call proc
+                          (append (list object) (or pos (list)))
+                          nam)))
+          (fallback meta))))))
+
+(define (pryll:invoke object method #!optional pos nam src)
+  (invoke object method pos nam src
+          (lambda (meta)
+            (pryll:err <pryll:error-unknown-method>
+                       meta:        meta
+                       method:      method
+                       location:    (or src (void))))))
+
+(define (pryll:invoke/maybe object method #!optional pos nam src)
+  (invoke object method pos nam src
+          (lambda (meta) (void))))
+
+;(define (pryll:invoke object method #!optional pos nam fallback loc)
+;  (let* ((meta (pryll:meta-for object))
+;         (mcache (pryll:object-internal meta "mcache"))
+;         (proc (phash-slot mcache method)))
+;    (dbg "call method " (pryll:name meta) "." method " " pos " " nam)
+;    (if (not-void? proc)
+;      (pryll:stack-level
+;        (pryll:stack-id "method"
+;                        loc
+;                        (conc (pryll:name meta)
+;                              "."
+;                              method))
+;        (lambda ()
+;          (proc (append (list object) (or pos (list)))
+;                (or nam (mkhash)))))
+;      (if fallback
+;        (fallback)
+;        (pryll:err <pryll:error-unknown-method>
+;                   meta:     meta
+;                   method:   method
+;                   location: (or loc (void)))))))
 
 (define pryll:object-data
   (getter-with-setter
@@ -431,8 +465,8 @@
                       (let* ((object (car pos))
                              (args (cdr pos)))
                         (if (null? args)
-                          (get object)
-                          (set object (car args)))))))))
+                          (get (list object) (mkhash))
+                          (set (cons object args) (mkhash)))))))))
           get-writer-code:
             ; TODO triggers, type constraints
             (method
@@ -486,7 +520,7 @@
                       (pryll:invoke
                         self
                         "install-accessor"
-                        (liast target reader))
+                        (list target reader))
                       (begin
                         (if (v-true? reader)
                           (pryll:invoke self
@@ -898,6 +932,13 @@
               name:     "functions"
               default:  (lambda args (mkhash))))
       (call add-methods:
+;            (mop/method
+;              name: "gist"
+;              code: (lambda (pos nam)
+;                      (say "GIST MOD " pos)
+;                      (sprintf
+;                        "#(module ~a)"
+;                        (pryll:invoke (cadr pos) "name"))))
             (mop/method
               name: "finalize"
               code: (lambda args (void)))

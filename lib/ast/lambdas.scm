@@ -1,7 +1,7 @@
 (declare (unit ast/lambdas))
 (declare (uses ast/util mop compiler))
 
-(define-inline (compile-lambda ctx location signature block)
+(define-inline (compile-lambda ctx type descr location signature block)
   (let ((var-pos (compile/genvar 'pos))
         (var-nam (compile/genvar 'nam))
         (var-none (compile/genvar 'none)))
@@ -10,19 +10,29 @@
          ,(compile-with-return
             ctx
             (lambda (rctx)
-              `(begin
-                 ,(pryll:invoke
-                    signature
-                    "compile-scope"
-                    (list rctx var-pos var-nam block))
-                 (void)))))
+              `(pryll:stack-level
+                 (pryll:stack-id
+                   ,(if (string? type) type "lambda")
+                   (pryll:caller-location)
+                   ,(if (string? descr) descr ""))
+                 (lambda ()
+                   ,(pryll:invoke
+                      signature
+                      "compile-scope"
+                      (list rctx var-pos var-nam block))
+                   (void))))))
       `(lambda ,var-none
          ,(compile-with-return
             ctx
             (lambda (rctx)
-              `(begin
-                 ,(compile rctx block)
-                 (void))))))))
+              `(pryll:stack-level
+                 (pryll:stack-id
+                   ,(if (string? type) type "lambda")
+                   (pryll:caller-location)
+                   ,(if (string? descr) descr ""))
+                 (lambda ()
+                   ,(compile rctx block)
+                   (void)))))))))
 
 (define <pryll:ast-lambda>
   (mop/init
@@ -31,12 +41,16 @@
       (call add-attributes:
             (attr/item "location")
             (attr/item "signature")
+            (attr/item "stack-type")
+            (attr/item "stack-description")
             (attr/item "block"))
       (call add-methods:
             (compile-method
               (lambda (self ctx)
                 (compile-lambda
                   ctx
+                  (pryll:object-data self "stack-type")
+                  (pryll:object-data self "stack-description")
                   (pryll:object-data self "location")
                   (pryll:object-data self "signature")
                   (pryll:object-data self "block"))))

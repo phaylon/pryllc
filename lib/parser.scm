@@ -231,15 +231,17 @@
         found))))
 
 (define (source->ast name body)
-  (parser
-    (source->token-iterator name body)
-    (lambda (msg token)
-      (pryll:err <pryll:error-syntax>
-                 location: (source-location->pryll-location
-                             (lexical-token-source token))
-                 message: (conc
-                            "Unexpected token "
-                            (lexical-token-category token)
-                            " '"
-                            (car (lexical-token-value token))
-                            "'")))))
+  (let ((doc (parser
+               (source->token-iterator name body)
+               (lambda (msg token)
+                 (pryll:err <pryll:error-syntax>
+                            location: (source-location->pryll-location
+                                        (lexical-token-source token))
+                            message: (conc
+                                       "Unexpected token "
+                                       (lexical-token-category token)
+                                       " '"
+                                       (car (lexical-token-value token))
+                                       "'"))))))
+    (pryll:invoke doc "location" (list (list name 0 0)))
+    doc))

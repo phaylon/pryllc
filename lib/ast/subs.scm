@@ -12,9 +12,11 @@
           ctx
           (pryll:make
             <pryll:ast-lambda>
-            location:  (pryll:object-data self "location")
-            signature: (pryll:object-data self "signature")
-            block:     (pryll:object-data self "block"))))))
+            stack-type:         "subroutine"
+            stack-description:  name
+            location:           (pryll:object-data self "location")
+            signature:          (pryll:object-data self "signature")
+            block:              (pryll:object-data self "block"))))))
 
 (define <pryll:ast-subroutine>
   (mop/init

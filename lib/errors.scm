@@ -72,7 +72,7 @@
             (mop/attribute
               name:    "trace"
               default: (lambda (pos nam)
-                         (cdr (pryll:current-stack)))))
+                         (pryll:current-stack))))
       (call add-method-modifier:
             "get-full-message"
             (lambda (pos nam)

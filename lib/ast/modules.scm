@@ -10,13 +10,17 @@
       "$*MODULE"
       `(mop/module name: ,name)
       (lambda (mctx var)
-        `(begin
-           ,(compile/declaration mctx self var)
-           ,(compile
-              mctx
-              (pryll:object-data self "block"))
-           (pryll:invoke ,var "finalize")
-           (pryll:register ,var))))))
+        (compile/with-namespace
+          mctx
+          name
+          (lambda (nsctx)
+            `(begin
+               ,(compile/declaration nsctx self var)
+               ,(compile
+                  nsctx
+                  (pryll:object-data self "block"))
+               (pryll:invoke ,var "finalize")
+               (pryll:register ,var))))))))
 
 (define <pryll:ast-module>
   (mop/init

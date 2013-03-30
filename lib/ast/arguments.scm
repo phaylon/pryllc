@@ -18,7 +18,7 @@
                   `(hash-table->alist
                      (compile/assert-type
                        type/hash
-                       (compile ctx item)
+                       (compile ctx (pryll:invoke item "expression"))
                        (pryll:invoke item "location")))
                   `(list
                      (cons
@@ -30,10 +30,11 @@
 (define (compile-pos-args self ctx)
   `(append
      ,@(map (lambda (item)
+              (dbg "pos arg")
               (if (array-splice? item)
                 (compile/assert-type
                   type/array
-                  (compile ctx item)
+                  (compile ctx (pryll:invoke item "expression"))
                   (pryll:invoke item "location"))
                 (list
                   'list

@@ -26,7 +26,9 @@
                       (args    (pryll:object-data self "arguments")))
                   `(let ((,var-inv ,(compile ctx inv))
                          (,var-met ,(compile ctx met)))
-                     (pryll:invoke
+                     (,(if maybe
+                         'pryll:invoke/maybe
+                         'pryll:invoke)
                        ,var-inv
                        ,var-met
                        ,(pryll:invoke
@@ -37,9 +39,6 @@
                           args
                           "compile-named"
                           (list ctx))
-                       ,(if maybe
-                          `(lambda args (void))
-                          #f)
                        (list ,@(pryll:object-data self "location")))
                      ,@(if chain
                          (list var-inv)

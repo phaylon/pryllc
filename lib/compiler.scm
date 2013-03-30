@@ -259,6 +259,10 @@
               reader:     "return"
               writer:     "set-return")
             (mop/attribute
+              name:       "namespace"
+              reader:     "namespace"
+              init-arg:   "namespace")
+            (mop/attribute
               name:       "identifiers"
               init-arg:   "identifiers"
               default:    (lambda args (mkhash)))
@@ -305,6 +309,14 @@
                             (pryll:object-data self "identifiers")
                             name)
                           (call-parent self "find-identifier" name)))))
+            (mop/method
+              name: "find-namespace"
+              code: (unwrap-pos-args
+                      (lambda (self)
+                        (let ((ns (pryll:object-data self "namespace")))
+                          (if (not-void? ns)
+                            ns
+                            (call-parent self "find-namespace"))))))
             (mop/method
               name: "find-return"
               code: (unwrap-pos-args
@@ -370,6 +382,10 @@
               (list (to-name (pryll:invoke ast "name"))))
             "variable")
      ,source))
+
+(define (compile/with-namespace ctx ns proc)
+  (let ((nsctx (subcontext/customized ctx namespace: ns)))
+    (proc nsctx)))
 
 (define (subcontext ctx)
   (pryll:make <context>

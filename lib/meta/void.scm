@@ -3,7 +3,7 @@
 
 (define <pryll:meta-void>
   (mop/init
-    (mop/class name: "Void")
+    (mop/class name: "Undef")
     (lambda (call)
       (call finalize:))))
 

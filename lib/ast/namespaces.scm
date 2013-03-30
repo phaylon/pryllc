@@ -21,9 +21,18 @@
                 (let* ((name (pryll:object-data self "value"))
                        (ident (pryll:invoke ctx
                                             "find-identifier"
-                                            (list name)))
-                       (var (pryll:invoke ident "variable")))
-                  `(force ,var))))
+                                            (list name))))
+                  (if (v-true? ident)
+                    (let ((var (pryll:invoke ident "variable")))
+                      `(force ,var))
+                    (pryll:err <pryll:error-syntax>
+                               location: (pryll:object-data
+                                           self
+                                           "location")
+                               message: (conc
+                                          "Unbound identifier '"
+                                          name
+                                          "'"))))))
             (dump-method
               (lambda (self)
                 `(ns ,(pryll:object-data self "value")))))
