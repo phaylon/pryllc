@@ -7,6 +7,12 @@
     (lambda (call)
       (call add-methods:
             (mop/method
+              name: "push"
+              code: (lambda (pos nam)
+                      (let ((self (car pos))
+                            (items (cdr pos)))
+                        (append! self items))))
+            (mop/method
               name: "map"
               code: (lambda (pos nam)
                       (let ((self (car pos))

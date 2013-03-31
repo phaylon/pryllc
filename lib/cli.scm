@@ -11,7 +11,7 @@
     #t
     #f))
 
-(define (cli/parse spec proc)
+(define (cli/parse args spec proc)
   (define (spec->alist spec alist)
     (if (null? spec)
       alist
@@ -100,5 +100,5 @@
           (traverse (cdr args)
                     options
                     (append rest (list next-arg)))))))
-  (let ((args (argv)))
+  (let ((argsfull (argv)))
     (traverse (cdr args) '() '())))

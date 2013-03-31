@@ -250,6 +250,21 @@
                      variable:  var))
         (else (error "Unable to declare" ast))))
 
+(define-inline (pusher-method name slot)
+  (mop/method
+    name: name
+    code: (unwrap-pos-args
+            (lambda (self ns)
+              (let ((par (pryll:object-data self "parent")))
+                (if (v-true? parent)
+                  (call-parent self name ns)
+                  (pryll:invoke
+                    (pryll:object-data
+                      self
+                      slot)
+                    "push"
+                    (list ns))))))))
+
 (define <context>
   (mop/init
     (mop/class name: "Core::AST::Compiler::Context")
@@ -259,6 +274,14 @@
               name:       "parent"
               reader:     "parent"
               init-arg:   "parent")
+            (mop/attribute
+              name:       "provided-namespaces"
+              reader:     "provided-namespaces"
+              default:    (lambda args (list)))
+            (mop/attribute
+              name:       "required-namespaces"
+              reader:     "required-namespaces"
+              default:    (lambda args (list)))
             (mop/attribute
               name:       "prepared"
               default:    (lambda args (mkhash)))
@@ -282,6 +305,8 @@
               name:       "variables"
               default:    (lambda args (mkhash))))
       (call add-methods:
+            (pusher-method "require-namespace" "required-namespaces")
+            (pusher-method "provide-namespace" "provided-namespaces")
             (mop/method
               name: "find-special"
               code: (unwrap-pos-args

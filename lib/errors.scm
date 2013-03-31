@@ -287,6 +287,15 @@
             <pryll:role-throwable-stacktrace>)
       (call finalize:))))
 
+(define <pryll:error-build>
+  (mop/init
+    (mop/class name: "Error::Build")
+    (lambda (call)
+      (call add-roles:
+            <pryll:role-throwable>
+            <pryll:role-throwable-message>)
+      (call finalize:))))
+
 ;(pryll:err <pryll:error-type>
 ;           expected: <pryll:meta-attribute>
 ;           received: <pryll:meta-method>)
