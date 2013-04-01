@@ -9,7 +9,7 @@
                   (let ((c-operand (pryll:invoke
                                      operand
                                      "compile"
-                                     (list ctx))))
+                                     (vector ctx))))
                     (if (number? c-operand)
                       (* c-operand -1)
                       (pryll:err

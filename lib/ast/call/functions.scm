@@ -7,12 +7,12 @@
   (let* ((name  (pryll:object-data self "function-name"))
          (loc   (pryll:object-data self "location"))
          (args  (pryll:object-data self "arguments"))
-         (ident (pryll:invoke ctx "find-identifier" (list name))))
+         (ident (pryll:invoke ctx "find-identifier" (vector name))))
     (if ident
       `(pryll:call
          ,(pryll:invoke ident "get-value")
-         ,(pryll:invoke args "compile-positional" (list ctx))
-         ,(pryll:invoke args "compile-named" (list ctx))
+         ,(pryll:invoke args "compile-positional" (vector ctx))
+         ,(pryll:invoke args "compile-named" (vector ctx))
          (list ,@loc)
          ,(conc "named procedure '" name "'"))
       (pryll:err <pryll:error-syntax>

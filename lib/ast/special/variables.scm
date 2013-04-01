@@ -16,7 +16,7 @@
                 (let ((special (pryll:invoke
                                  ctx
                                  "find-special"
-                                 (list
+                                 (vector
                                    (pryll:object-data self "value")))))
                   (or special
                       (pryll:err <pryll:error-syntax>

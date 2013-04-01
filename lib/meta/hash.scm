@@ -9,13 +9,20 @@
             (mop/method
               name: "get"
               code: (lambda (pos nam)
-                      (p/hash-ref (car pos) (cadr pos))))
+                      (let* ((self (v1 pos))
+                             (key  (v2 pos)))
+                        (hash-table-ref/default
+                          self
+                          key
+                          (void)))))
             (mop/method
               name: "set"
               code: (lambda (pos nam)
-                      (set! (p/hash-ref (car pos) (cadr pos))
-                        (caddr pos))
-                      (caddr pos))))
+                      (let* ((self (v1 pos))
+                             (key  (v2 pos))
+                             (new  (v3 pos)))
+                        (hash-table-set! self key new)
+                        new))))
       (call finalize:))))
 
 (mop/meta-hash <pryll:meta-hash>)

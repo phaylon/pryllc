@@ -163,12 +163,12 @@
                       "value")))
              (spec (list
                      (pryll:invoke var "symbol")
-                     `(if (> ,index (- (length ,src-var) 1))
+                     `(if (> ,index (- (vector-length ,src-var) 1))
                         ,(if default
                            (compile ctx default)
                            '(void))
                         (list-ref ,src-var ,index)))))
-        (pryll:invoke ctx "add-variable" (list var))
+        (pryll:invoke ctx "add-variable" (vector var))
         (cons spec
               (compile-pos (cdr left) (+ index 1))))))
   (let* ((params (pryll:object-data self "parameters"))
@@ -196,7 +196,7 @@
                              ,(if default
                                 (compile ctx default)
                                 '(void))))))
-             (pryll:invoke ctx "add-variable" (list var))
+             (pryll:invoke ctx "add-variable" (vector var))
              spec))
          nam)))
 
@@ -210,12 +210,12 @@
              (lexvar (pryll:invoke rest-param "variable"))
              (var (compile/scoped-var
                     (pryll:invoke lexvar "value"))))
-        (pryll:invoke ctx "add-variable" (list var))
+        (pryll:invoke ctx "add-variable" (vector var))
         (list
           (list (pryll:invoke var "symbol")
-                `(if (> (length ,src-var) ,pos-cnt)
-                   (list-tail ,src-var ,pos-cnt)
-                   (list))))))))
+                `(if (> (vector-length ,src-var) ,pos-cnt)
+                   (vtail ,src-var ,pos-cnt)
+                   (vector))))))))
 
 (define-inline (signature-declare-rest-nam self ctx src-var)
   (let* ((params (pryll:object-data self "parameters"))
@@ -232,7 +232,7 @@
              (var-pair (compile/genvar 'pair))
              (var (compile/scoped-var
                     (pryll:invoke lexvar "value"))))
-        (pryll:invoke ctx "add-variable" (list var))
+        (pryll:invoke ctx "add-variable" (vector var))
         (list
           (list (pryll:invoke var "symbol")
                 `(alist->hash-table
@@ -261,7 +261,7 @@
         (subctx  (subcontext ctx)))
     `(begin
        ,@(if (and pos-min (> pos-min 0))
-           `((if (< (length ,var-pos) ,pos-min)
+           `((if (< (vector-length ,var-pos) ,pos-min)
                (pryll:err
                  <pryll:error-arguments>
                  message:
@@ -272,10 +272,10 @@
                       " positional "
                       (if (= pos-min 1) "argument" "arguments")
                       ", but only received ")
-                   (length ,var-pos)))))
+                   (vector-length ,var-pos)))))
            '())
        ,@(if pos-max
-           `((if (> (length ,var-pos) ,pos-max)
+           `((if (> (vector-length ,var-pos) ,pos-max)
                (pryll:err
                  <pryll:error-arguments>
                  message:
@@ -286,7 +286,7 @@
                       " positional "
                       (if (= pos-max 1) "argument" "arguments")
                       ", but received ")
-                   (length ,var-pos)))))
+                   (vector-length ,var-pos)))))
            '())
        ,@(if (> (length nam-req) 0)
            `((for-each (lambda (,var-key)

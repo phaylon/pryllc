@@ -17,7 +17,7 @@
 (define-inline (compile-assign self ctx)
   (let ((target (pryll:object-data self "target"))
         (expr (pryll:object-data self "expression")))
-    (pryll:invoke target "compile-assign" (list ctx expr))))
+    (pryll:invoke target "compile-assign" (vector ctx expr))))
 
 (define <pryll:ast-assign>
   (mop/init

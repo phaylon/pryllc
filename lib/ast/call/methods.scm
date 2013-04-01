@@ -34,11 +34,11 @@
                        ,(pryll:invoke
                           args
                           "compile-positional"
-                          (list ctx))
+                          (vector ctx))
                        ,(pryll:invoke
                           args
                           "compile-named"
-                          (list ctx))
+                          (vector ctx))
                        (list ,@(pryll:object-data self "location")))
                      ,@(if chain
                          (list var-inv)

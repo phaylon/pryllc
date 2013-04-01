@@ -9,7 +9,7 @@
             (mop/method
               name: "match"
               code: (lambda (pos nam)
-                      (void? (cadr pos)))))
+                      (void? (v2 pos)))))
       (call finalize:))))
 
 (mop/meta-void <pryll:meta-void>)

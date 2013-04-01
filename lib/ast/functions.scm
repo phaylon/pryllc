@@ -6,7 +6,7 @@
 (declare (hide find-module compile-module-function))
 
 (define (find-module self ctx)
-  (let ((ident (pryll:invoke ctx "find-special" (list "$*MODULE"))))
+  (let ((ident (pryll:invoke ctx "find-special" (vector "$*MODULE"))))
     (if ident
       ident
       (error "Function declaration outside of module declaration"))))
@@ -36,7 +36,7 @@
        (pryll:invoke
          ,src-mod
          "add-function"
-         (list
+         (vector
            (pryll:make <pryll:meta-function>
                        name: ,name
                        code: ,var-proc))))))

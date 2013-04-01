@@ -9,62 +9,46 @@
                object-internal))
 
 (import chicken scheme)
-(require-extension srfi-69 srfi-1 srfi-13 data-structures lolevel)
+(require-extension
+  srfi-69
+  srfi-1
+  srfi-13
+  data-structures
+  vector-lib
+  lolevel)
 
 (define-record object meta data internal)
 
 (define (pryll:name object)
-;  (dbg "name for " object)
   (let ((name (pryll:object-data object "name")))
     (if (v-true? name)
       name
       "<unnamed>")))
 
-;(define-record-printer (object instance out)
-;  (display
-;    (conc "#<instance of "
-;          (pryll:name (pryll:meta-for instance))
-;          ">"))
-;    out)
-
 (define (mop/init object proc)
   (proc (lambda (method . args)
-          (pryll:invoke object (->string method) args)))
+          (pryll:invoke object (->string method) (list->vector args))))
   object)
-
-(define (mop/describe title item)
-;  (say title)
-  (define (dumper value)
-    (cond ((hash-table? value)
-           (map (lambda (key)
-                  (list key (dumper (hash-table-ref value key))))
-                (hash-table-keys value)))
-          (else value)))
-  (say
-    (list (list "data"
-                (dumper (object-data item)))
-          (list "internal"
-                (dumper (object-internal item))))))
 
 (define (mop/attribute . args)
   (pryll:invoke
     <pryll:meta-attribute>
     "new"
-    (list)
+    #f
     (apply phash args)))
 
 (define (mop/role #!key name)
   (pryll:invoke
     <pryll:meta-role>
     "new"
-    (list)
+    #f
     (phash name: name)))
 
 (define (mop/class #!key name extends)
   (pryll:invoke
     <pryll:meta-class>
     "new"
-    (list)
+    #f
     (apply phash
            (append
              (list name: name)
@@ -76,17 +60,17 @@
   (pryll:invoke
     <pryll:meta-module>
     "new"
-    (list)
+    #f
     (phash name: name)))
 
 (define (pryll:isa? obj class)
-  (pryll:invoke (pryll:meta-for obj) "is-a" (list class)))
+  (pryll:invoke (pryll:meta-for obj) "is-a" (vector class)))
 
 (define (pryll:make class . args)
   (pryll:invoke
     class
     "new"
-    (list)
+    #f
     (apply phash args)))
 
 (define mop/meta-string     (make-parameter #f))
@@ -115,18 +99,8 @@
     src
     (lambda ()
       (cond ((procedure? proc)
-             (proc (or pos (list)) (or nam (mkhash))))
+             (proc pos nam))
             (else (pryll:invoke proc "call" pos nam src))))))
-
-;(define (pryll:call func pos nam location #!optional descr)
-;  (cond ((procedure? func)
-;         (pryll:stack-level
-;           (pryll:stack-id "lambda"
-;                           location
-;                           (or descr ""))
-;           (lambda ()
-;             (func pos nam))))
-;        (else (pryll:invoke func "call" pos nam))))
 
 (define (make meta #!optional data internal)
   (make-object
@@ -135,6 +109,7 @@
     (or internal (mkhash))))
 
 (define-inline (invoke object method #!optional pos nam src fallback)
+  (dbg "invoke " method " " pos)
   (let* ((meta (pryll:meta-for object))
          (mcache (pryll:object-internal meta "mcache")))
     (if (void? mcache)
@@ -146,7 +121,9 @@
             src
             (lambda ()
               (pryll:call proc
-                          (append (list object) (or pos (list)))
+                          (vector-append
+                            (vector object)
+                            (or pos (vector)))
                           nam)))
           (fallback meta))))))
 
@@ -161,28 +138,6 @@
 (define (pryll:invoke/maybe object method #!optional pos nam src)
   (invoke object method pos nam src
           (lambda (meta) (void))))
-
-;(define (pryll:invoke object method #!optional pos nam fallback loc)
-;  (let* ((meta (pryll:meta-for object))
-;         (mcache (pryll:object-internal meta "mcache"))
-;         (proc (phash-slot mcache method)))
-;    (dbg "call method " (pryll:name meta) "." method " " pos " " nam)
-;    (if (not-void? proc)
-;      (pryll:stack-level
-;        (pryll:stack-id "method"
-;                        loc
-;                        (conc (pryll:name meta)
-;                              "."
-;                              method))
-;        (lambda ()
-;          (proc (append (list object) (or pos (list)))
-;                (or nam (mkhash)))))
-;      (if fallback
-;        (fallback)
-;        (pryll:err <pryll:error-unknown-method>
-;                   meta:     meta
-;                   method:   method
-;                   location: (or loc (void)))))))
 
 (define pryll:object-data
   (getter-with-setter
@@ -205,7 +160,7 @@
 
 (define (unwrap-pos-args code)
   (lambda (pos nam)
-    (apply code pos)))
+    (apply code (vector->list pos))))
 
 (define <pryll:meta-class>)
 (define <pryll:meta-attribute>)
@@ -257,11 +212,12 @@
                                     key))))))
 
 (define-inline (unique-named ls)
-  (delete-duplicates
-    ls
-    (lambda (a b)
-      (string=? (pryll:invoke a "name")
-                (pryll:invoke b "name")))))
+  (list->vector
+    (delete-duplicates
+      (vector->list ls)
+      (lambda (a b)
+        (string=? (pryll:invoke a "name")
+                  (pryll:invoke b "name"))))))
 
 (define-inline (method/hash-values/super method slot)
   (make (delay <pryll:meta-method>)
@@ -276,12 +232,13 @@
                                         self
                                         "superclass")))
                            (unique-named
-                              (append (phash-values data)
-                                      (if (not-void? super)
-                                        (pryll:invoke
-                                          super
-                                          method)
-                                        '())))))))))
+                             (vector-append
+                               (phash-values data)
+                               (if (not-void? super)
+                                 (pryll:invoke
+                                   super
+                                   method)
+                                 (vector))))))))))
 
 (define-inline (method/hash-values method slot)
   (make (delay <pryll:meta-method>)
@@ -323,7 +280,7 @@
                      (pryll:invoke
                        attr
                        "get-cacheable-init-code"))
-                   attrs)))))
+                   (vector->list attrs))))))
 
 (define-inline (fix-mcache class)
   (let* ((methods (phash-values (pryll:object-data
@@ -335,7 +292,7 @@
              (map (lambda (method)
                     (list (pryll:object-data method "name")
                           (pryll:object-data method "code")))
-                  methods)))))
+                  (vector->list methods))))))
 
 (define-inline (calc-mcache class)
   (let* ((methods (pryll:invoke class "get-all-methods")))
@@ -344,7 +301,7 @@
              (map (lambda (method)
                     (list (pryll:invoke method "name")
                           (pryll:invoke method "get-cacheable-code")))
-                  methods)))))
+                  (vector->list methods))))))
 
 (set! <pryll:meta-method-modifier>
   (make
@@ -371,15 +328,17 @@
                                  "get-cacheable-code"))
                          (code (pryll:object-data self "code")))
                     (lambda (pos nam)
-                      (code (append (list orig) pos)
+                      (code (vector-append
+                              (vector orig)
+                              (or pos (vector)))
                             nam))))))
           call:
             (method
               "call"
               (lambda (pos nam)
                 (let* ((code (pryll:invoke self "get-cacheable-code"))
-                       (self (car pos)))
-                  (code (cdr pos) nam))))
+                       (self (v1 pos)))
+                  (code (vtail pos) nam))))
         ))))
 
 (set! <pryll:meta-method>
@@ -404,8 +363,8 @@
           call:
             (method "call"
               (lambda (pos nam)
-                (let* ((self (car pos))
-                       (realpos (cdr pos))
+                (let* ((self (v1 pos))
+                       (realpos (vtail pos))
                        (code (pryll:object-data
                                self
                                "code")))
@@ -423,7 +382,7 @@
           (pryll:invoke
             target
             "add-method"
-            (list (method name code))))))))
+            (vector (method name code))))))))
 
 (set! <pryll:meta-attribute>
   (make
@@ -462,11 +421,11 @@
                   (let* ((get (pryll:invoke self "get-reader-code"))
                          (set (pryll:invoke self "get-writer-code")))
                     (lambda (pos nam)
-                      (let* ((object (car pos))
-                             (args (cdr pos)))
-                        (if (null? args)
-                          (get (list object) (mkhash))
-                          (set (cons object args) (mkhash)))))))))
+                      (let* ((object (v1 pos))
+                             (args (vtail pos)))
+                        (if (vnull? args)
+                          (get (vector object) (mkhash))
+                          (set (vcons object args) (mkhash)))))))))
           get-writer-code:
             ; TODO triggers, type constraints
             (method
@@ -495,7 +454,7 @@
                             (pryll:object-data object name)
                             (begin
                               (set! (pryll:object-data object name)
-                                (default (list object) (mkhash)))
+                                (default (vector object) (mkhash)))
                               (pryll:object-data object name))))
                         (lambda (object)
                           (pryll:object-data object name))))))))
@@ -520,16 +479,16 @@
                       (pryll:invoke
                         self
                         "install-accessor"
-                        (list target reader))
+                        (vector target reader))
                       (begin
                         (if (v-true? reader)
                           (pryll:invoke self
                                         "install-reader"
-                                        (list target reader)))
+                                        (vector target reader)))
                         (if (v-true? writer)
                           (pryll:invoke self
                                         "install-writer"
-                                        (list target writer)))))
+                                        (vector target writer)))))
                     (void)))))
           get-cacheable-init-code:
             (method
@@ -556,7 +515,7 @@
                             (if (v-true? default)
                               (if (v-false? lazy)
                                 (set! (pryll:object-data object name)
-                                  (default (list object) (mkhash))))
+                                  (default (vector object) (mkhash))))
                               (if required
                                 (error "Required attribute" name))))
                           (void)))
@@ -586,30 +545,30 @@
 
 (define (construct-instance class pos nam)
   (let* ((object (make class)))
-    (map (lambda (init)
-           (init (list object nam) (mkhash)))
-         (pryll:object-internal class "icache"))
+    (for-each (lambda (init)
+                (init (vector object nam) (mkhash)))
+              (pryll:object-internal class "icache"))
     object))
 
 (define (class-add-method pos nam)
-  (let* ((self (car pos))
-         (method (cadr pos)))
+  (let* ((self   (v1 pos))
+         (method (v2 pos)))
     ; TODO check for existing methods
     (set! (phash-slot (pryll:object-data self "methods")
                       (pryll:invoke method "name"))
       method)))
 
 (define (class-add-method-modifier pos nam)
-  (let* ((self (car pos))
-         (name (cadr pos))
-         (code (caddr pos))
-         (curr (pryll:invoke self "find-method" (list name))))
+  (let* ((self (v1 pos))
+         (name (v2 pos))
+         (code (v3 pos))
+         (curr (pryll:invoke self "find-method" (vector name))))
     (if (not-void? curr)
       (set! (phash-slot (pryll:object-data self "methods") name)
         (pryll:invoke
           <pryll:meta-method-modifier>
           "new"
-          (list)
+          #f
           (phash original:  curr
                  name:      name
                  code:      code)))
@@ -617,13 +576,13 @@
     (void)))
 
 (define (class-add-attribute pos nam)
-  (let* ((self (car pos))
-         (attr (cadr pos)))
+  (let* ((self (v1 pos))
+         (attr (v2 pos)))
     ; TODO check for existing attrs
     (set! (phash-slot (pryll:object-data self "attributes")
                       (pryll:invoke attr "name"))
       attr)
-      (pryll:invoke attr "install" (list self))))
+      (pryll:invoke attr "install" (vector self))))
 
 (set! <pryll:meta-class>
   (make
@@ -643,7 +602,7 @@
             (method
               "new"
               (lambda (pos nam)
-                (construct-instance (car pos) (cdr pos) nam)))
+                (construct-instance (v1 pos) (vtail pos) nam)))
           copy:
             (method
               "copy"
@@ -667,7 +626,7 @@
                     (let ((super (pryll:invoke self "superclass")))
                       (if (void? super)
                         #f
-                        (pryll:invoke super "is-a" (list class))))))))
+                        (pryll:invoke super "is-a" (vector class))))))))
           finalize:
             (method
               "finalize"
@@ -697,46 +656,48 @@
               "add-roles"
               (lambda (pos nam)
                 (map (lambda (item)
-                       (pryll:invoke (car pos)
+                       (pryll:invoke (v1 pos)
                                      "add-role"
-                                     (list item)))
-                     (cdr pos))))
+                                     (vector item)))
+                     (vector->list (vtail pos)))))
           add-role:
             (method
               "add-role"
               (lambda (pos nam)
                 (pryll:invoke
-                  (cadr pos)
+                  (v2 pos)
                   "apply"
-                  (list (car pos)))))
+                  (vector (v1 pos)))))
           add-methods:
             (method
               "add-methods"
               (lambda (pos nam)
-                (map (lambda (item)
-                       (pryll:invoke (car pos)
-                                     "add-method"
-                                     (list item)))
-                     (cdr pos))))
+                (vector-map
+                  (lambda (i item)
+                    (pryll:invoke (v1 pos)
+                                  "add-method"
+                                  (vector item)))
+                  (vtail pos))))
           add-attributes:
             (method
               "add-attributes"
               (lambda (pos nam)
-                (map (lambda (item)
-                       (pryll:invoke (car pos)
-                                     "add-attribute"
-                                     (list item)))
-                     (cdr pos))))
+                (vector-map
+                  (lambda (i item)
+                    (pryll:invoke (v1 pos)
+                                  "add-attribute"
+                                  (vector item)))
+                  (vtail pos))))
           find-method:
             (method
               "find-method"
               (unwrap-pos-args
                 (lambda (self name)
-                  (if (pryll:invoke self "has-method" (list name))
-                    (pryll:invoke self "get-method" (list name))
+                  (if (pryll:invoke self "has-method" (vector name))
+                    (pryll:invoke self "get-method" (vector name))
                     (let ((super (pryll:invoke self "superclass")))
                       (if (not-void? super)
-                        (pryll:invoke super "find-method" (list name))
+                        (pryll:invoke super "find-method" (vector name))
                         (void)))))))
           has-attribute:
             (method/hash-predicate "has-attribute" "attributes")
@@ -770,7 +731,7 @@
   (pryll:invoke
     (pryll:meta-for object)
     "copy"
-    (list object)))
+    (vector object)))
 
 (define <pryll:meta-role-apply-attribute>
   (mop/init
@@ -786,7 +747,7 @@
                   (pryll:invoke
                     target
                     "add-attribute"
-                    (list (pryll:invoke self "attribute")))))))
+                    (vector (pryll:invoke self "attribute")))))))
       (call finalize:))))
 
 (define <pryll:meta-role-apply-method>
@@ -803,7 +764,7 @@
                   (pryll:invoke
                     target
                     "add-method"
-                    (list (pryll:invoke self "method")))))))
+                    (vector (pryll:invoke self "method")))))))
       (call finalize:))))
 
 (define <pryll:meta-role-apply-method-modifier>
@@ -821,8 +782,8 @@
                   (pryll:invoke
                     target
                     "add-method-modifier"
-                    (list (pryll:object-data self "name")
-                          (pryll:object-data self "code")))))))
+                    (vector (pryll:object-data self "name")
+                            (pryll:object-data self "code")))))))
       (call finalize:))))
 
 (set! <pryll:meta-role>
@@ -832,16 +793,16 @@
       (call add-attributes:
             (attr/ro "name")
             (attr/ro "sequence"
-                     default: (lambda args (list))))
+                     default: (lambda args (vector))))
       (call add-methods:
             (method
               "extend-sequence"
               (lambda (pos nam)
-                (let ((self (car pos)))
+                (let ((self (v1 pos)))
                   (set! (pryll:object-data self "sequence")
-                    (append
+                    (vector-append
                       (pryll:object-data self "sequence")
-                      (cdr pos))))
+                      (vtail pos))))
                 (void)))
             (method
               "add-method-modifier"
@@ -850,7 +811,7 @@
                   (pryll:invoke
                     self
                     "extend-sequence"
-                    (list
+                    (vector
                       (pryll:make
                         <pryll:meta-role-apply-method-modifier>
                         name: name
@@ -862,7 +823,7 @@
                   (pryll:invoke
                     self
                     "extend-sequence"
-                    (list
+                    (vector
                       (pryll:make
                         <pryll:meta-role-apply-method>
                         method: method)))
@@ -874,7 +835,7 @@
                   (pryll:invoke
                     self
                     "extend-sequence"
-                    (list
+                    (vector
                       (pryll:make
                         <pryll:meta-role-apply-attribute>
                         attribute: attr)))
@@ -883,9 +844,10 @@
               "apply"
               (unwrap-pos-args
                 (lambda (self target)
-                  (map (lambda (app)
-                         (pryll:invoke app "apply" (list target)))
-                       (pryll:object-data self "sequence"))))))
+                  (vector-map
+                    (lambda (i app)
+                      (pryll:invoke app "apply" (vector target)))
+                    (pryll:object-data self "sequence"))))))
       (call finalize:))))
 
 (define (mop/method #!key name code)
@@ -915,8 +877,8 @@
             (mop/method
               name: "call"
               code: (lambda (pos nam)
-                      (let ((proc (pryll:object-data (car pos) "code")))
-                        (proc (cdr pos) nam)))))
+                      (let ((proc (pryll:object-data (v1 pos) "code")))
+                        (proc (vtail pos) nam)))))
       (call finalize:))))
 
 (define <pryll:meta-module>
@@ -932,13 +894,6 @@
               name:     "functions"
               default:  (lambda args (mkhash))))
       (call add-methods:
-;            (mop/method
-;              name: "gist"
-;              code: (lambda (pos nam)
-;                      (say "GIST MOD " pos)
-;                      (sprintf
-;                        "#(module ~a)"
-;                        (pryll:invoke (cadr pos) "name"))))
             (mop/method
               name: "finalize"
               code: (lambda args (void)))
@@ -965,7 +920,7 @@
   (pryll:invoke
     <pryll:meta-module>
     "new"
-    (list)
+    #f
     (phash name: name)))
 
 (define pryll:meta-registry (mkhash))

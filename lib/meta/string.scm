@@ -9,18 +9,18 @@
             (mop/method
               name: "match"
               code: (lambda (pos nam)
-                      (let* ((self (car pos))
-                             (value (cadr pos)))
+                      (let* ((self  (v1 pos))
+                             (value (v2 pos)))
                         (and (string? value)
                              (string=? self value)))))
             (mop/method
               name: "str"
               code: (lambda (pos nam)
-                      (car pos)))
+                      (v1 pos)))
             (mop/method
               name: "num"
               code: (lambda (pos nam)
-                      (let* ((self (car pos))
+                      (let* ((self (v1 pos))
                              (str  self)
                              (num  (string->number str)))
                         (or num

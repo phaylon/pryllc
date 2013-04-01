@@ -1,6 +1,8 @@
 (declare (unit ast/call/nether))
 (declare (uses ast/util mop compiler errors nether))
 
+(require-extension vector-lib)
+
 (import chicken scheme)
 
 (define <pryll:ast-nether-call>
@@ -37,16 +39,16 @@
                   (if nether
                     `(let ((,var-inv ,(compile ctx inv)))
                        (,nether
-                         (append
-                           (list ,var-inv)
+                         (pryll:array-append
+                           (vector ,var-inv)
                            ,(pryll:invoke
                               args
                               "compile-positional"
-                              (list ctx)))
+                              (vector ctx)))
                          ,(pryll:invoke
                             args
                             "compile-named"
-                            (list ctx)))
+                            (vector ctx)))
                        ,@(if chain
                            (list var-inv)
                            '()))

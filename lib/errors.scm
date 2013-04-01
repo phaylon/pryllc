@@ -4,7 +4,7 @@
 
 (define (pryll:err class . args)
   (pryll:invoke
-    (pryll:invoke class "new" (list) (apply phash args))
+    (pryll:invoke class "new" #f (apply phash args))
     "throw"))
 
 (define <pryll:role-throwable>
@@ -15,12 +15,12 @@
             (mop/method
               name: "get-full-message"
               code: (lambda (pos nam)
-                      (pryll:invoke (car pos) "get-message"))))
+                      (pryll:invoke (v1 pos) "get-message"))))
       (call add-method:
             (mop/method
               name: "throw"
               code: (lambda (pos nam)
-                      (pryll:throw (car pos))))))))
+                      (pryll:throw (v1 pos))))))))
 
 (define <pryll:role-throwable-message>
   (mop/init
@@ -36,7 +36,7 @@
             (mop/method
               name: "get-message"
               code: (lambda (pos nam)
-                      (pryll:object-data (car pos) "message")))))))
+                      (pryll:object-data (v1 pos) "message")))))))
 
 (define <pryll:role-throwable-location>
   (mop/init
@@ -50,11 +50,11 @@
       (call add-method-modifier:
             "get-full-message"
             (lambda (pos nam)
-              (let* ((orig (car pos))
-                     (self (cadr pos))
-                     (rest (cddr pos))
+              (let* ((orig (v1 pos))
+                     (self (v2 pos))
+                     (rest (vtail pos 2))
                      (loc (pryll:object-data self "location")))
-                (conc (orig (append (list self) rest) nam)
+                (conc (orig (vcons self rest) nam)
                       (if (not-void? loc)
                         (conc "\n\tin "
                               (list-ref loc 0)
@@ -76,10 +76,10 @@
       (call add-method-modifier:
             "get-full-message"
             (lambda (pos nam)
-              (let* ((orig (car pos))
-                     (self (cadr pos))
-                     (rest (cddr pos)))
-                (conc (orig (append (list self) rest) nam)
+              (let* ((orig (v1 pos))
+                     (self (v2 pos))
+                     (rest (vtail pos 2)))
+                (conc (orig (vcons self rest) nam)
                       "\n\nStack Trace:\n"
                       (apply
                         conc
@@ -110,24 +110,25 @@
       (call add-method-modifier:
             "throw"
             (lambda (pos nam)
-              (let* ((orig (car pos))
-                     (self (cadr pos))
-                     (rest (cddr pos)))
+              (let* ((orig (v1 pos))
+                     (self (v2 pos))
+                     (rest (vtail pos 2)))
                 (call/cc
                   (lambda (cont)
                     (if (void? (pryll:object-data self "continuation"))
                       (set! (pryll:object-data self "continuation")
                         cont))
-                    (orig (append (list self) rest)
+                    (orig (vcons self rest)
                           nam))))))
       (call add-method:
             (mop/method
               name: "rescue"
               code: (lambda (pos nam)
-                      (let ((cont
+                      (let* ((self (v1 pos))
+                             (cont
                               (pryll:object-data self "continuation")))
                         (if (not-void? cont)
-                          (cont (cadr pos))
+                          (cont (v2 pos))
                           (pryll:err
                             <pryll:error-generic>
                             message: (conc "Unable to rescue unthrown <"
@@ -154,7 +155,7 @@
             (mop/method
               name: "get-message"
               code: (lambda (pos nam)
-                      (let* ((self (car pos))
+                      (let* ((self (v1 pos))
                              (type (pryll:object-data self "type"))
                              (name (pryll:object-data self "name")))
                         (conc "Invalid use of undeclared "
@@ -183,7 +184,7 @@
             (mop/method
               name: "get-message"
               code: (lambda (pos nam)
-                      (let* ((self     (car pos))
+                      (let* ((self     (v1 pos))
                              (expected (pryll:name
                                          (pryll:invoke self "expected")))
                              (received (pryll:name
@@ -221,15 +222,15 @@
       (call add-method-modifier:
             "get-message"
             (lambda (pos nam)
-              (let* ((orig (car pos))
-                     (self (cadr pos))
-                     (rest (cddr pos)))
+              (let* ((orig (v1 pos))
+                     (self (v2 pos))
+                     (rest (vtail pos 2)))
                 (conc "Unable to coerce from <"
                       (pryll:name (pryll:invoke self "from-type"))
                       "> to <"
                       (pryll:name (pryll:invoke self "to-type"))
                       "> because:\n\t"
-                      (orig (append (list self) rest) nam)))))
+                      (orig (vcons self rest) nam)))))
       (call add-roles:
             <pryll:role-throwable-location>
             <pryll:role-throwable-stacktrace>)
@@ -254,7 +255,7 @@
             (mop/method
               name: "get-message"
               code: (lambda (pos nam)
-                      (let ((self (car pos)))
+                      (let ((self (v1 pos)))
                         (sprintf "Method ~s is not available on <~a>"
                                  (pryll:object-data self "method")
                                  (pryll:name

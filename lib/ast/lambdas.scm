@@ -19,7 +19,7 @@
                    ,(pryll:invoke
                       signature
                       "compile-scope"
-                      (list rctx var-pos var-nam block))
+                      (vector rctx var-pos var-nam block))
                    (void))))))
       `(lambda ,var-none
          ,(compile-with-return

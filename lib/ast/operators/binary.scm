@@ -32,7 +32,7 @@
     `(pryll:invoke
        ,(compile ctx right)
        "match"
-       (list ,(compile ctx left)))))
+       (vector ,(compile ctx left)))))
 
 (define binopmap
   `(("+"    ,(primop '+ type/number))

@@ -17,8 +17,8 @@
                 (let ((args (pryll:object-data self "arguments")))
                 `(pryll:call
                    ,(compile ctx (pryll:object-data self "function"))
-                   ,(pryll:invoke args "compile-positional" (list ctx))
-                   ,(pryll:invoke args "compile-named" (list ctx))
+                   ,(pryll:invoke args "compile-positional" (vector ctx))
+                   ,(pryll:invoke args "compile-named" (vector ctx))
                    (list ,@(pryll:object-data self "location"))))))
             (dump-method
               (lambda (self)

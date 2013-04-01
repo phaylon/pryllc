@@ -243,5 +243,5 @@
                                        " '"
                                        (car (lexical-token-value token))
                                        "'"))))))
-    (pryll:invoke doc "location" (list (list name 0 0)))
+    (pryll:invoke doc "location" (vector (list name 0 0)))
     doc))

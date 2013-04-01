@@ -1,10 +1,10 @@
 (declare (unit runtime))
 
 (define (func/say pos nam)
-  (map display pos)
+  (vector-map (lambda (i item) (display item)) pos)
   (newline)
   (void))
 
 (define (func/print pos nam)
-  (map display pos)
+  (vector-map (lambda (i item) (display item)) pos)
   (void))

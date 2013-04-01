@@ -19,16 +19,16 @@
   (mop/method
     name: "debug-dump"
     code: (lambda (pos nam)
-            (proc (car pos)))))
+            (proc (v1 pos)))))
 
 (define (compile-method proc)
   (mop/method
     name: "compile"
     code: (lambda (pos nam)
-            (proc (car pos) (cadr pos)))))
+            (proc (v1 pos) (v2 pos)))))
 
 (define (compile ctx item)
-  (pryll:invoke item "compile" (list ctx) (mkhash)))
+  (pryll:invoke item "compile" (vector ctx) (mkhash)))
 
 (define (attr/item name)
   (mop/attribute

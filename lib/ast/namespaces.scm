@@ -15,13 +15,13 @@
               name: "name"
               code: (lambda (pos nam)
                       (dbg "namespace to name")
-                      (pryll:object-data (car pos) "value")))
+                      (pryll:object-data (v1 pos) "value")))
             (compile-method
               (lambda (self ctx)
                 (let* ((name (pryll:object-data self "value"))
                        (ident (pryll:invoke ctx
                                             "find-identifier"
-                                            (list name))))
+                                            (vector name))))
                   (if (v-true? ident)
                     (let ((var (pryll:invoke ident "variable")))
                       `(force ,var))

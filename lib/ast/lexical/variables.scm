@@ -5,7 +5,7 @@
 
 (define-inline (find-variable self ctx)
   (let* ((name (pryll:object-data self "value"))
-         (var (pryll:invoke ctx "find-variable" (list name))))
+         (var (pryll:invoke ctx "find-variable" (vector name))))
     (if (v-true? var)
       var
       `(pryll:err
@@ -19,8 +19,8 @@
   (let* ((name (pryll:object-data self "value"))
          (var (find-variable self ctx)))
     `(begin
-       ,(pryll:invoke var "compile-assign" (list ctx expr))
-       ,(pryll:invoke var "compile-access" (list ctx)))))
+       ,(pryll:invoke var "compile-assign" (vector ctx expr))
+       ,(pryll:invoke var "compile-access" (vector ctx)))))
 
 (define <pryll:ast-variable-lexical>
   (mop/init
@@ -35,24 +35,24 @@
               code: (lambda (pos nam)
                       (irregex-replace
                         '(: bos "$")
-                        (pryll:object-data (car pos) "value")
+                        (pryll:object-data (v1 pos) "value")
                         "")))
             (mop/method
               name: "compile-assign"
               code: (lambda (pos nam)
                       (compile-assign
-                        (car pos)
-                        (cadr pos)
-                        (caddr pos))))
+                        (v1 pos)
+                        (v2 pos)
+                        (v3 pos))))
             (compile-method
               (lambda (self ctx)
                 (let* ((name (pryll:object-data self "value"))
                        (var (pryll:invoke
                               ctx
                               "find-variable"
-                              (list name))))
+                              (vector name))))
                   (if var
-                    (pryll:invoke var "compile-access" (list ctx))
+                    (pryll:invoke var "compile-access" (vector ctx))
                     (error "Unbound lexical variable" name)))))
             (dump-method
               (lambda (self)

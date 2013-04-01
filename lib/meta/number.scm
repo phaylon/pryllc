@@ -9,17 +9,17 @@
             (mop/method
               name: "match"
               code: (lambda (pos nam)
-                      (let* ((self (car pos))
-                             (value (cadr pos)))
+                      (let* ((self  (v1 pos))
+                             (value (v2 pos)))
                         (and (number? value)
                              (= self value)))))
             (mop/method
               name: "str"
               code: (lambda (pos nam)
-                      (number->string (car pos))))
+                      (number->string (v1 pos))))
             (mop/method
               name: "num"
-              code: (lambda (pos nam) (car pos))))
+              code: (lambda (pos nam) (v1 pos))))
       (call finalize:))))
 
 (define <pryll:meta-integer>

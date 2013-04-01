@@ -9,6 +9,8 @@
 (import chicken scheme)
 (require-extension srfi-1 srfi-13 srfi-69)
 
+(require-extension vector-lib)
+
 (define (compile/genvar #!optional name)
   (gensym (conc "pry/lex-" (->string name) "-")))
 
@@ -36,9 +38,11 @@
 
 (define type/array
   (list '<pryll:meta-array>
-        'list?
+        'vector?
         (lambda (value)
-          (is-call? '(list append map filter) value))))
+          (is-call?
+            '(vector vector-map vector-append vtail)
+            value))))
 
 (define type/hash
   (list '<pryll:meta-hash>
@@ -55,7 +59,7 @@
     type
     (if (length rest)
       (car rest)
-      (pryll:invoke ast "compile" (list ctx)))
+      (pryll:invoke ast "compile" (vector ctx)))
     (pryll:invoke ast "location")))
 
 (define (compile/assert-type type expression #!optional location)
@@ -77,7 +81,7 @@
 (define (compile-with-return ctx proc)
   (let ((var-ret (compile/genvar 'ret))
         (rctx (subcontext ctx)))
-    (pryll:invoke rctx "set-return" (list var-ret))
+    (pryll:invoke rctx "set-return" (vector var-ret))
     `(call/cc
        (lambda (,var-ret)
          ,(proc rctx)))))
@@ -101,34 +105,34 @@
               reader:       "symbol"
               default:      (lambda (pos nam)
                               (compile/genvar
-                                (pryll:object-data (car pos) "name")))
+                                (pryll:object-data (v1 pos) "name")))
               is-lazy:      #t))
       (call add-methods:
             (mop/method
               name: "compile-assign"
               code: (lambda (pos nam)
-                      (let* ((self (car pos))
-                             (ctx  (cadr pos))
-                             (expr (caddr pos))
+                      (let* ((self (v1 pos))
+                             (ctx  (v2 pos))
+                             (expr (v3 pos))
                              (var (pryll:invoke self "symbol")))
                         `(set! ,var ,(compile ctx expr)))))
             (mop/method
               name: "compile-access"
               code: (lambda (pos nam)
-                      (let* ((self (car pos))
+                      (let* ((self (v1 pos))
                              (var (pryll:invoke self "symbol")))
                         var)))
             (mop/method
               name: "compile-declare"
               code: (lambda (pos nam)
-                      (let* ((self (car pos))
-                             (ctx (cadr pos))
-                             (init (caddr pos))
+                      (let* ((self (v1 pos))
+                             (ctx  (v2 pos))
+                             (init (v3 pos))
                              (var (pryll:invoke self "symbol")))
                         `(define
                            ,var
                            ,(if init
-                              (pryll:invoke init "compile" (list ctx))
+                              (pryll:invoke init "compile" (vector ctx))
                               `(void)))))))
       (call finalize:))))
 
@@ -147,11 +151,11 @@
      ,@(filter (lambda (item) item)
                (map (lambda (item)
                       (if (declaration? item)
-                        (pryll:invoke ctx "predeclare" (list item))
+                        (pryll:invoke ctx "predeclare" (vector item))
                         #f))
                     seq))
      ,@(map (lambda (item)
-              (let ((code (pryll:invoke item "compile" (list ctx))))
+              (let ((code (pryll:invoke item "compile" (vector ctx))))
                 (pryll:invoke ctx "commit-variables")
                 code))
             seq)))
@@ -215,7 +219,7 @@
 (define-inline (call-parent self method . args)
   (let ((parent (pryll:object-data self "parent")))
     (if (not-void? parent)
-      (pryll:invoke parent method args)
+      (pryll:invoke parent method (list->vector args))
       #f)))
 
 (define <ident-declare>
@@ -263,7 +267,7 @@
                       self
                       slot)
                     "push"
-                    (list ns))))))))
+                    (vector ns))))))))
 
 (define <context>
   (mop/init
@@ -277,11 +281,11 @@
             (mop/attribute
               name:       "provided-namespaces"
               reader:     "provided-namespaces"
-              default:    (lambda args (list)))
+              default:    (lambda args (vector)))
             (mop/attribute
               name:       "required-namespaces"
               reader:     "required-namespaces"
-              default:    (lambda args (list)))
+              default:    (lambda args (vector)))
             (mop/attribute
               name:       "prepared"
               default:    (lambda args (mkhash)))
@@ -370,7 +374,7 @@
                               (pryll:invoke
                                 parent
                                 "find-variable"
-                                (list name))
+                                (vector name))
                               #f))))))
             (mop/method
               name: "commit-variables"
@@ -412,7 +416,7 @@
             (pryll:invoke
               ctx
               "find-identifier"
-              (list (to-name (pryll:invoke ast "name"))))
+              (vector (to-name (pryll:invoke ast "name"))))
             "variable")
      ,source))
 
@@ -455,4 +459,4 @@
        ,(pryll:invoke
           ast
           "compile"
-          (list ctx)))))
+          (vector ctx)))))

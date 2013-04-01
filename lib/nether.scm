@@ -14,11 +14,14 @@
       (cdr found)
       #f)))
 
-(define-inline (gist-list ls)
-  (string-join (map (lambda (item)
-                      (nether/gist (list item) (mkhash)))
-                    ls)
-               ", "))
+(define-inline (gist-vector ls)
+  (string-join
+    (vector->list
+      (pryll:array-map
+        (lambda (i item)
+          (nether/gist (vector item) #f))
+        ls))
+    ", "))
 
 (define-inline (namify value)
   (if (v-true? value)
@@ -26,7 +29,7 @@
     "<anon>"))
 
 (define (nether/gist pos nam)
-  (define value (car pos))
+  (define value (v1 pos))
   (cond ((boolean? value)
          (if value "true" "false"))
         ((number? value)
@@ -35,8 +38,8 @@
          (sprintf "~s" value))
         ((void? value)
          "undef")
-        ((list? value)
-         (conc "[" (gist-list value) "]"))
+        ((vector? value)
+         (conc "[" (gist-vector value) "]"))
         (else
           (let ((meta (pryll:meta-for value)))
             (cond ((pryll:isa? value <pryll:meta-module>)
@@ -50,10 +53,10 @@
                              (namify (pryll:invoke meta "name")))))))))
 
 (define (nether/array pos nam)
-  (let ((value (car pos)))
-    (if (list? value)
+  (let ((value (v1 pos)))
+    (if (vector? value)
       value
-      (list value))))
+      (vector value))))
 
 (define (nether/meta pos nam)
-  (pryll:meta-for (car pos)))
+  (pryll:meta-for (v1 pos)))

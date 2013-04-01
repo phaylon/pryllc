@@ -14,13 +14,13 @@
                              (pryll:invoke
                                var
                                "compile-declare"
-                               (list ctx init)))))
+                               (vector ctx init)))))
                    declarations)))
     (for-each (lambda (item)
                 (pryll:invoke
                   ctx
                   "prepare-variable"
-                  (list (car item))))
+                  (vector (car item))))
               vars)
     `(begin
        ,@(map cadr vars)

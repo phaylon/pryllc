@@ -14,7 +14,7 @@
        (pryll:invoke
          ,var-cont
          ,method
-         (list ,var-slot ,@extra)))))
+         (vector ,var-slot ,@extra)))))
   
 (define <pryll:ast-slot-ref>
   (mop/init

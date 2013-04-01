@@ -11,9 +11,6 @@
                expected: meta
                received: (pryll:meta-for value))))
 
-(define (assert/array value)
-  (assert-type list? <pryll:meta-array> value))
-
 (define (assert/hash value)
   (assert-type hash-table? <pryll:meta-hash> value))
 
@@ -25,6 +22,7 @@
 
 (define (assert/integer value)
   (assert-type integer? <pryll:meta-integer> value))
+
 
 ;;
 ;; hashes
@@ -68,25 +66,25 @@
                    index
                    (length array))))))
 
-(define p/array-ref
-  (getter-with-setter
-    (lambda (array index)
-      (assert/array array)
-      (assert/integer index)
-      (if (>= index 0)
-        (if (> index (list-last array))
-          (void)
-          (list-ref array index))
-        (let ((neg-index (negative-index array index)))
-          (list-ref array neg-index))))
-    (lambda (array index new-value)
-      (assert/array array)
-      (assert/number index)
-      (if (>= index 0)
-        (let ((diff (- (list-last array) index)))
-          (if (< diff 0)
-            (append! array (list-void (abs diff))))
-          (set! (list-ref array index) new-value))
-        (let ((neg-index (negative-index array index)))
-          (set! (list-ref array neg-index) new-value)))
-      new-value)))
+;(define p/array-ref
+;  (getter-with-setter
+;    (lambda (array index)
+;      (pryll:array/assert array)
+;      (assert/integer index)
+;      (if (>= index 0)
+;        (if (> index (list-last array))
+;          (void)
+;          (list-ref array index))
+;        (let ((neg-index (negative-index array index)))
+;          (list-ref array neg-index))))
+;    (lambda (array index new-value)
+;      (pryll:array/assert array)
+;      (assert/number index)
+;      (if (>= index 0)
+;        (let ((diff (- (list-last array) index)))
+;          (if (< diff 0)
+;            (append! array (list-void (abs diff))))
+;          (set! (list-ref array index) new-value))
+;        (let ((neg-index (negative-index array index)))
+;          (set! (list-ref array neg-index) new-value)))
+;      new-value)))
