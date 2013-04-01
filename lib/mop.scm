@@ -95,6 +95,7 @@
         (else               (error "Unable to find meta for" item))))
 
 (define (pryll:call proc #!optional pos nam src)
+;  (say "CALL " proc " " pos)
   (pryll:stack-location
     src
     (lambda ()

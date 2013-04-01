@@ -16,11 +16,15 @@
 (define (pryll:stack-location loc proc)
   (if (v-true? loc)
     (dynamic-wind
-      (lambda () (set! caller-location-stack
-                   (cons loc caller-location-stack)))
+      (lambda ()
+;        (say "ENTER " loc)
+        (set! caller-location-stack
+          (cons loc caller-location-stack)))
       proc
-      (lambda () (set! caller-location-stack
-                   (cdr caller-location-stack))))
+      (lambda ()
+;        (say "LEAVE " loc)
+        (set! caller-location-stack
+          (cdr caller-location-stack))))
     (proc)))
 
 (define (pryll:format-stack-id id)

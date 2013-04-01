@@ -318,7 +318,8 @@
             (mop/method
               name: "compile-scope"
               code: (lambda (pos nam)
-                      (apply compile-signature-scope pos)))
+                      (apply compile-signature-scope
+                             (vector->list pos))))
             (dump-method
               (lambda (self)
                 `(signature
